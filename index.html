@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Classroom Quiz Hub</title>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+  <style>
+    * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+    body { margin: 0; background: #0f172a; color: #f8fafc; text-align: center; overflow-x: hidden; }
+    .header { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; background: #1e293b; border-bottom: 2px solid #334155; position: sticky; top: 0; z-index: 10; }
+    .stat { font-size: 1.05rem; font-weight: 700; }
+    .timer { color: #38bdf8; font-variant-numeric: tabular-nums; }
+    .timer.low { color: #ef4444; animation: pulse 0.8s infinite; }
+    @keyframes pulse { 50% { opacity: 0.4; } }
+
+    .overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.96); display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 20px 12px; z-index: 30; overflow-y: auto; }
+    .card { background: #1e293b; padding: 22px; border-radius: 12px; max-width: 740px; width: 100%; border: 1px solid #334155; margin: auto; text-align: left; }
+    .card-center { text-align: center; }
+    h2, h3 { margin-top: 0; color: #f8fafc; }
+    label { display: block; font-size: 0.85rem; color: #94a3b8; margin-top: 10px; font-weight: 600; }
+    input[type="text"], input[type="number"], select, textarea { width: 100%; padding: 11px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: white; font-size: 0.95rem; margin-top: 6px; }
+    input[type="file"] { margin-top: 6px; color: #cbd5e1; font-size: 0.9rem; }
+
+    .btn { background: #0284c7; color: white; border: none; padding: 12px 18px; font-size: 1rem; font-weight: 700; border-radius: 8px; cursor: pointer; width: 100%; margin-top: 10px; transition: 0.15s; }
+    .btn:hover { background: #0369a1; }
+    .btn-secondary { background: #334155; }
+    .btn-secondary:hover { background: #475569; }
+    .btn-warning { background: #d97706; }
+    .btn-warning:hover { background: #b45309; }
+    .btn-success { background: #16a34a; }
+    .btn-success:hover { background: #15803d; }
+    .btn-danger { background: #991b1b; font-size: 0.85rem; padding: 8px 14px; width: auto; margin-top: 0; }
+    .btn-row { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+
+    .stage { display: none; max-width: 850px; margin: 16px auto; padding: 0 12px; }
+    .box { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 22px; text-align: left; }
+    .progress { font-size: 0.82rem; color: #38bdf8; text-transform: uppercase; font-weight: 700; }
+    .prompt-lg { font-size: 1.25rem; font-weight: 700; margin: 10px 0 18px 0; line-height: 1.4; }
+
+    /* Visual Stages */
+    #img-wrap { position: relative; display: inline-block; width: 100%; user-select: none; }
+    #scene { width: 100%; height: auto; display: block; border-radius: 8px; cursor: crosshair; }
+    .marker { position: absolute; border: 3px solid #22c55e; background: rgba(34, 197, 94, 0.25); border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; }
+    .pin-marker { position: absolute; width: 30px; height: 30px; border-radius: 50%; background: #0f172a; border: 2px solid #94a3b8; color: white; font-weight: 800; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; transform: translate(-50%, -50%); pointer-events: none; }
+    .pin-marker.active { background: #f59e0b; border-color: #fff; color: #000; transform: translate(-50%, -50%) scale(1.25); z-index: 5; box-shadow: 0 0 12px #f59e0b; }
+    .pin-marker.done { background: #16a34a; border-color: #fff; }
+
+    /* Interactive Option Buttons */
+    .opt-btn { background: #0f172a; border: 2px solid #334155; color: #f8fafc; padding: 13px 16px; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; width: 100%; text-align: left; margin-bottom: 8px; transition: 0.15s; }
+    .opt-btn:hover { border-color: #38bdf8; background: #162238; }
+    .opt-btn.used { opacity: 0.35; pointer-events: none; border-color: #22c55e; }
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+
+    /* Catchphrase */
+    .cp-board { position: relative; width: 100%; border-radius: 10px; overflow: hidden; border: 2px solid #334155; background: #000; }
+    .cp-board img { width: 100%; display: block; }
+    .cp-grid { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(4, 1fr); }
+    .cp-tile { background: #1e293b; border: 1px solid #334155; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #475569; font-size: 1.2rem; transition: opacity 0.4s ease; }
+    .cp-tile.revealed { opacity: 0; pointer-events: none; }
+
+    /* Builder */
+    #builder-canvas-wrap { position: relative; display: inline-block; width: 100%; margin-top: 10px; border: 1px dashed #475569; border-radius: 8px; overflow: hidden; }
+    #builder-img { width: 100%; display: block; cursor: crosshair; }
+    .admin-dot { position: absolute; border: 2px solid #f59e0b; background: rgba(245, 158, 11, 0.4); color: #fff; font-size: 0.75rem; font-weight: bold; display: flex; align-items: center; justify-content: center; border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; }
+    .preview-list { max-height: 170px; overflow-y: auto; background: #0f172a; padding: 10px; border-radius: 8px; border: 1px solid #334155; margin-top: 8px; font-size: 0.85rem; }
+
+    /* Leaderboard */
+    .table-wrap { width: 100%; overflow-x: auto; margin-top: 14px; max-height: 45vh; overflow-y: auto; border: 1px solid #334155; border-radius: 8px; }
+    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.92rem; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid #334155; }
+    th { background: #0f172a; color: #94a3b8; position: sticky; top: 0; font-size: 0.8rem; text-transform: uppercase; }
+    tr.player-row { cursor: pointer; }
+    tr.player-row:hover { background: #26354d; }
+    tr.highlight { background: rgba(2, 132, 199, 0.25); font-weight: bold; }
+    .details-row { display: none; background: #0f172a; font-size: 0.85rem; }
+    .details-box { padding: 8px 12px; display: flex; flex-wrap: wrap; gap: 6px; }
+    .badge-found { background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid #22c55e; padding: 2px 8px; border-radius: 999px; }
+    .badge-missed { background: rgba(239, 68, 68, 0.12); color: #f87171; border: 1px solid #ef4444; padding: 2px 8px; border-radius: 999px; }
+    #toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #16a34a; color: white; padding: 10px 20px; border-radius: 999px; font-weight: 600; opacity: 0; transition: 0.2s; pointer-events: none; z-index: 50; box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
+  </style>
+</head>
+<body>
+
+  <!-- START SCREEN -->
+  <div id="start-screen" class="overlay">
+    <div class="card card-center">
+      <h2>📡 Classroom Training Hub</h2>
+      <p style="color:#94a3b8; font-size:0.95rem;">Select an active training quiz below and enter your name to begin.</p>
+      <label style="text-align:left;">Select Active Quiz:</label>
+      <select id="quiz-selector" onchange="onQuizSelectChange()"></select>
+      <div id="quiz-meta-info" style="font-size:0.82rem; color:#38bdf8; margin: 6px 0 12px 0; text-align:left;">Loading quizzes...</div>
+      <label style="text-align:left;">Your Name / Callsign:</label>
+      <input type="text" id="player-name" placeholder="Enter your name..." maxlength="25" />
+      <button class="btn" onclick="startGame()">🚀 Start Challenge</button>
+      <button class="btn btn-secondary" onclick="openLeaderboardOnly()">🏆 View Live Leaderboard</button>
+      <hr style="border:0; border-top:1px solid #334155; margin: 16px 0;">
+      <button class="btn btn-warning" onclick="openStudio()">🛠️ Instructor Studio (Create / Manage Quizzes)</button>
+    </div>
+  </div>
+
+  <!-- INSTRUCTOR STUDIO -->
+  <div id="studio-screen" class="overlay" style="display: none;">
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2 style="margin:0;">🛠️ Instructor Quiz Studio</h2>
+        <button class="btn btn-secondary" style="width:auto; margin:0; padding:8px 14px;" onclick="closeStudio()">✖ Close</button>
+      </div>
+      <label>1. Quiz Title & Topic:</label>
+      <input type="text" id="build-title" placeholder="e.g. Radar & EW Fundamentals - Module 1" />
+      <div class="btn-row">
+        <div style="flex:1;">
+          <label>2. Game Mode:</label>
+          <select id="build-type" onchange="switchBuilderType()">
+            <option value="mcq">📝 Multiple Choice (.docx / Text)</option>
+            <option value="binary">⚡ Binary Blitz - True/False (.docx / Text)</option>
+            <option value="sequence">🔢 Sequence Builder - Order Steps (.docx / Text)</option>
+            <option value="triage">🗂️ Rapid Triage - Bucket Sorter (.docx / Text)</option>
+            <option value="acronym">🔤 Acronym & Term Decoder (.docx / Text)</option>
+            <option value="spot">🎯 Spot the Targets (Hidden Image Zones)</option>
+            <option value="pin">📌 Schematic Pin-Matcher (Numbered Image Pins)</option>
+            <option value="catchphrase">🟩 Catchphrase (16-Tile Image Reveal)</option>
+          </select>
+        </div>
+        <div style="width:130px;">
+          <label>Time Limit (s):</label>
+          <input type="number" id="build-time" value="60" min="15" max="600" />
+        </div>
+      </div>
+
+      <!-- TEXT / DOCX BUILDER (Modes 1-5) -->
+      <div id="builder-doc" style="margin-top:12px;">
+        <div style="background:#0f172a; padding:12px; border-radius:8px; border:1px solid #334155;">
+          <label style="margin-top:0; color:#38bdf8;">Upload Word (.docx) / Text (.txt) OR Paste Below:</label>
+          <input type="file" id="docx-upload" accept=".docx,.txt" onchange="handleDocxUpload(event)" />
+          <div id="format-hint" style="font-size:0.78rem; color:#cbd5e1; margin-top:8px; white-space:pre-line; background:#1e293b; padding:8px; border-radius:6px;"></div>
+        </div>
+        <label>Raw Content Editor (Auto-fills on upload, or type directly):</label>
+        <textarea id="raw-text-input" rows="6" oninput="parseCurrentDocText()" placeholder="Upload a .docx file above or type/paste items here..."></textarea>
+        <div class="btn-row" style="align-items:center;">
+          <div style="flex:1;">
+            <label>Items Per Student Round (0 = All):</label>
+            <input type="number" id="build-limit" value="0" min="0" max="100" />
+          </div>
+          <div style="flex:1; padding-top:22px;">
+            <label style="display:inline-flex; align-items:center; gap:8px; cursor:pointer; color:#f8fafc;">
+              <input type="checkbox" id="build-random" checked style="width:18px; height:18px; margin:0;" /> Shuffle Order
+            </label>
+          </div>
+        </div>
+        <label>Parsed Items Preview (<span id="doc-count">0</span> valid items):</label>
+        <div id="doc-preview-list" class="preview-list">Waiting for content...</div>
+      </div>
+
+      <!-- IMAGE BUILDER (Modes 6-8) -->
+      <div id="builder-img-section" style="display:none; margin-top:12px;">
+        <label>Upload Scene or Schematic Image (Auto-Compressed):</label>
+        <input type="file" id="img-upload" accept="image/*" onchange="handleImageUpload(event)" />
+        <div id="spot-pin-controls">
+          <div class="btn-row">
+            <div style="flex:1;">
+              <label>Hit Zone Size (%):</label>
+              <input type="number" id="spot-radius" value="5" min="2" max="15" />
+            </div>
+            <div style="flex:2; display:flex; align-items:flex-end;">
+              <button class="btn btn-secondary" onclick="clearBuilderTargets()">🔄 Clear Placed Points</button>
+            </div>
+          </div>
+        </div>
+        <div id="cp-controls" style="display:none;">
+          <label>Clue / Prompt Question:</label>
+          <input type="text" id="build-cp-clue" placeholder="e.g. Identify this radar array before all tiles clear!" />
+          <label>Accepted Correct Answer(s) (comma-separated):</label>
+          <input type="text" id="build-cp-answer" placeholder="e.g. Yagi, Yagi-Uda" />
+        </div>
+        <div id="builder-canvas-wrap" style="display:none;">
+          <img id="builder-img" alt="Preview" onclick="onBuilderImageClick(event)" />
+        </div>
+        <div id="spot-pin-list-wrap">
+          <label>Mapped Points (<span id="spot-count">0</span>):</label>
+          <div id="spot-preview-list" class="preview-list">Upload an image and click targets to map them.</div>
+        </div>
+      </div>
+
+      <button class="btn btn-success" style="margin-top:18px;" onclick="publishQuiz()">🚀 Publish Quiz to Classroom</button>
+      <button class="btn btn-danger" style="margin-top:10px; width:100%;" onclick="deleteSelectedQuiz()">🗑️ Delete Currently Selected Quiz from Database</button>
+    </div>
+  </div>
+
+  <!-- GAME HEADER -->
+  <div class="header">
+    <div class="stat">👤 <span id="display-name">Student</span></div>
+    <div class="stat">Score: <span id="score">0</span> / <span id="total-targets">0</span></div>
+    <div class="stat timer">⏱️ <span id="time">60</span>s</div>
+  </div>
+
+  <!-- STAGE A: IMAGE (SPOT & PIN-MATCHER) -->
+  <div id="visual-stage" class="stage">
+    <div id="pin-prompt-bar" class="box" style="display:none; margin-bottom:12px;">
+      <div class="progress" id="pin-progress">Pin 1</div>
+      <div style="font-size:1.05rem; font-weight:700; margin:6px 0 10px 0;">Select the correct label for the highlighted amber pin on the diagram:</div>
+      <div id="pin-options" class="grid-2"></div>
+    </div>
+    <div id="img-wrap">
+      <img id="scene" src="radios.jpg" alt="Scene" />
+    </div>
+  </div>
+
+  <!-- STAGE B: CARD INTERACTION (MCQ, BINARY, SEQUENCE, TRIAGE, ACRONYM) -->
+  <div id="card-stage" class="stage">
+    <div class="box">
+      <div class="progress" id="card-progress">Item 1</div>
+      <div class="prompt-lg" id="card-prompt">Loading...</div>
+      <div id="card-interactive"></div>
+    </div>
+  </div>
+
+  <!-- STAGE C: CATCHPHRASE -->
+  <div id="catchphrase-stage" class="stage">
+    <h3 id="cp-clue-display" style="margin-bottom:10px; color:#38bdf8;">Identify the hidden image!</h3>
+    <div class="cp-board">
+      <img id="cp-game-img" src="" alt="Mystery" />
+      <div class="cp-grid" id="cp-grid"></div>
+    </div>
+    <div style="margin-top:14px; display:flex; gap:10px;">
+      <input type="text" id="cp-guess-input" placeholder="Type your answer..." style="margin:0;" onkeydown="if(event.key==='Enter') submitCatchphraseGuess()" />
+      <button class="btn" style="width:auto; margin:0; white-space:nowrap;" onclick="submitCatchphraseGuess()">Submit</button>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <!-- END / LEADERBOARD SCREEN -->
+  <div id="end-screen" class="overlay" style="display: none;">
+    <div class="card card-center">
+      <h2 id="end-title" style="margin: 0 0 6px 0;">🏆 High Score Table</h2>
+      <p id="end-summary" style="font-size: 1.05rem; color: #38bdf8; margin: 4px 0;"></p>
+      <p style="font-size: 0.8rem; color: #94a3b8; margin: 0;">💡 Tap any student's row below to inspect their breakdown</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Name</th><th>Score</th><th>Time</th><th>Misses</th></tr></thead>
+          <tbody id="leaderboard-body"><tr><td colspan="5" style="text-align:center;">Loading...</td></tr></tbody>
+        </table>
+      </div>
+      <div class="btn-row">
+        <button class="btn" style="flex:1;" onclick="location.reload()">🔄 Main Menu / Play Again</button>
+      </div>
+      <div style="margin-top: 14px; display:flex; justify-content: space-between; align-items:center;">
+        <span style="font-size: 0.75rem; color: #64748b;">🟢 Live Sync Active</span>
+        <button class="btn btn-danger" onclick="clearScores()">🗑️ Reset Current Leaderboard</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDK0rK42F-VLi5J3DH0KmzT5pGnt_3HbUg",
+      authDomain: "spottheradios.firebaseapp.com",
+      projectId: "spottheradios",
+      storageBucket: "spottheradios.firebasestorage.app",
+      messagingSenderId: "749170419874",
+      appId: "1:749170419874:web:61028b2a80b4c1581b0ffb",
+      databaseURL: "https://spottheradios-default-rtdb.europe-west1.firebasedatabase.app"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const quizzesRef = db.ref('quizzes');
+    const allScoresRef = db.ref('quiz_scores');
+
+    const defaultQuiz = {
+      id: "default_spot_radios", title: "Spot the Radios (14 RF Devices)", type: "spot", timeLimit: 60, image: "radios.jpg",
+      targets: [
+        { id: 1, name: "Bluetooth Earbuds", x: 25.8, y: 35.0, r: 4.0 }, { id: 2, name: "Smartwatch", x: 34.6, y: 71.3, r: 4.0 },
+        { id: 3, name: "Smartphone", x: 42.5, y: 60.0, r: 4.5 }, { id: 4, name: "Wi-Fi Router", x: 46.8, y: 61.5, r: 5.5 },
+        { id: 5, name: "Laptop", x: 53.5, y: 64.5, r: 6.5 }, { id: 6, name: "Wireless Keyboard", x: 52.0, y: 80.0, r: 5.5 },
+        { id: 7, name: "Wireless Mouse", x: 55.8, y: 85.5, r: 4.5 }, { id: 8, name: "Vehicle Key Fob", x: 62.5, y: 92.0, r: 4.5 },
+        { id: 9, name: "Tablet Computer", x: 69.2, y: 78.5, r: 6.5 }, { id: 10, name: "Drone (UAV)", x: 46.3, y: 27.2, r: 4.5 },
+        { id: 11, name: "Commercial Aircraft", x: 59.5, y: 11.8, r: 5.5 }, { id: 12, name: "Satellite", x: 96.8, y: 6.2, r: 5.0 },
+        { id: 13, name: "Mobile Phone Mast", x: 92.3, y: 33.5, r: 5.0 }, { id: 14, name: "Cars (TPMS/Keyless/Radar)", x: 79.8, y: 56.5, r: 6.5 }
+      ]
+    };
+
+    const modeIcons = { mcq:'📝', binary:'⚡', sequence:'🔢', triage:'🗂️', acronym:'🔤', spot:'🎯', pin:'📌', catchphrase:'🟩' };
+    const formatHints = {
+      mcq: "Format:\nQ: Question text?\n*A) Correct Option\nB) Wrong Option\nC) Wrong Option",
+      binary: "Format (End each statement with (T) or (F)):\nPassive sonar emits an acoustic pulse (F)\nWi-Fi uses 2.4 GHz and 5 GHz (T)",
+      sequence: "Format (List steps in chronological order; separate multiple sequences with a blank line):\n1. Isolate power supply\n2. Discharge capacitors\n3. Verify zero voltage",
+      triage: "Format:\nCategory: Active Sensors\n- Pulsed Doppler Radar\nCategory: Passive Sensors\n- RWR Receiver",
+      acronym: "Format (Term = Definition):\nTPMS = Tyre Pressure Monitoring System\nRADAR = Radio Detection And Ranging"
+    };
+
+    let availableQuizzes = { "default_spot_radios": defaultQuiz };
+    let activeQuiz = defaultQuiz, activeScoreListener = null;
+    let playerName = "", timeLeft = 60, timerInterval = null, cpTileInterval = null;
+    let scoreCount = 0, misses = 0, totalPossible = 14, sessionDetails = [];
+    let currentSessionId = Date.now() + "_" + Math.random().toString(36).substring(2, 7);
+
+    let activeItems = [], currentIndex = 0, seqProgress = 0;
+    let parsedDocItems = [], builderTargets = [], uploadedBase64Image = "";
+
+    quizzesRef.on('value', (snap) => {
+      availableQuizzes = { "default_spot_radios": defaultQuiz };
+      const data = snap.val();
+      if (data) Object.keys(data).forEach(k => availableQuizzes[k] = { ...data[k], id: k });
+      populateQuizDropdown();
+    });
+
+    function populateQuizDropdown() {
+      const sel = document.getElementById("quiz-selector");
+      const prev = sel.value || "default_spot_radios";
+      sel.innerHTML = "";
+      Object.values(availableQuizzes).forEach(q => {
+        const opt = document.createElement("option");
+        opt.value = q.id;
+        opt.textContent = `${modeIcons[q.type] || '🎯'} ${q.title}`;
+        sel.appendChild(opt);
+      });
+      if (availableQuizzes[prev]) sel.value = prev;
+      onQuizSelectChange();
+    }
+
+    function onQuizSelectChange() {
+      activeQuiz = availableQuizzes[document.getElementById("quiz-selector").value] || defaultQuiz;
+      const count = activeQuiz.targets ? activeQuiz.targets.length : (activeQuiz.items ? (activeQuiz.limit > 0 ? Math.min(activeQuiz.limit, activeQuiz.items.length) : activeQuiz.items.length) : 1);
+      document.getElementById("quiz-meta-info").textContent = `Mode: ${activeQuiz.type.toUpperCase()} • ${count} Items • ${activeQuiz.timeLimit}s Limit`;
+      if (activeScoreListener) activeScoreListener.off();
+      activeScoreListener = allScoresRef.child(activeQuiz.id);
+      activeScoreListener.on('value', (snap) => {
+        const data = snap.val();
+        if (!data) {
+          document.getElementById("leaderboard-body").innerHTML = `<tr><td colspan="5" style="text-align:center; color:#94a3b8;">No scores recorded yet.</td></tr>`;
+          return;
+        }
+        renderTable(Object.values(data));
+      });
+    }
+
+    // ================= GAMEPLAY ROUTER =================
+    function startGame() {
+      playerName = document.getElementById("player-name").value.trim();
+      if (!playerName) return alert("Please enter your name or callsign!");
+      document.getElementById("display-name").textContent = playerName;
+      document.getElementById("start-screen").style.display = "none";
+
+      timeLeft = parseInt(activeQuiz.timeLimit) || 60;
+      scoreCount = 0; misses = 0; currentIndex = 0; sessionDetails = [];
+      document.getElementById("time").textContent = timeLeft;
+      document.getElementById("score").textContent = "0";
+      document.querySelectorAll(".stage").forEach(s => s.style.display = "none");
+
+      if (activeQuiz.type === "spot" || activeQuiz.type === "pin") setupVisualMode();
+      else if (activeQuiz.type === "catchphrase") setupCatchphraseMode();
+      else setupCardMode();
+
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        const el = document.getElementById("time");
+        el.textContent = Math.max(0, timeLeft);
+        if (timeLeft <= 10) el.parentElement.classList.add("low");
+        if (timeLeft <= 0) endGame(false);
+      }, 1000);
+    }
+
+    // --- MODES: SPOT & PIN-MATCHER ---
+    function setupVisualMode() {
+      document.getElementById("visual-stage").style.display = "block";
+      document.getElementById("scene").src = activeQuiz.image || "radios.jpg";
+      document.querySelectorAll(".marker, .pin-marker").forEach(m => m.remove());
+      activeItems = (activeQuiz.targets || []).map((t, i) => ({ ...t, idx: i + 1, found: false }));
+      totalPossible = activeItems.length;
+      document.getElementById("total-targets").textContent = totalPossible;
+
+      if (activeQuiz.type === "pin") {
+        document.getElementById("pin-prompt-bar").style.display = "block";
+        const wrap = document.getElementById("img-wrap");
+        activeItems.forEach(t => {
+          const p = document.createElement("div");
+          p.className = "pin-marker"; p.id = "pin_" + t.idx; p.textContent = t.idx;
+          p.style.left = t.x + "%"; p.style.top = t.y + "%";
+          wrap.appendChild(p);
+        });
+        renderNextPin();
+      } else {
+        document.getElementById("pin-prompt-bar").style.display = "none";
+      }
+    }
+
+    function renderNextPin() {
+      if (currentIndex >= activeItems.length) return endGame(true);
+      document.querySelectorAll(".pin-marker").forEach(p => p.classList.remove("active"));
+      const cur = activeItems[currentIndex];
+      const activePin = document.getElementById("pin_" + cur.idx);
+      if (activePin) activePin.classList.add("active");
+      document.getElementById("pin-progress").textContent = `Identify Pin #${cur.idx} (${currentIndex + 1} of ${activeItems.length})`;
+
+      const optsDiv = document.getElementById("pin-options");
+      optsDiv.innerHTML = "";
+      const shuffled = [...activeItems].sort(() => Math.random() - 0.5);
+      shuffled.forEach(item => {
+        const b = document.createElement("button");
+        b.className = "opt-btn" + (item.found ? " used" : "");
+        b.textContent = item.name;
+        b.onclick = () => {
+          if (item.idx === cur.idx) {
+            cur.found = true; scoreCount++;
+            document.getElementById("score").textContent = scoreCount;
+            activePin.classList.remove("active"); activePin.classList.add("done");
+            sessionDetails.push({ label: `Pin ${cur.idx}: ${cur.name}`, ok: true });
+            showToast("✅ Correct!"); currentIndex++; renderNextPin();
+          } else {
+            misses++; showToast("✖ Wrong Pin Label");
+          }
+        };
+        optsDiv.appendChild(b);
+      });
+    }
+
+    document.getElementById("scene").addEventListener("click", function(e) {
+      if (activeQuiz.type !== "spot") return;
+      const rect = this.getBoundingClientRect();
+      const clickX = ((e.clientX - rect.left) / rect.width) * 100;
+      const clickY = ((e.clientY - rect.top) / rect.height) * 100;
+      const hit = activeItems.find(item => !item.found && Math.hypot(clickX - item.x, clickY - item.y) <= item.r);
+      if (hit) {
+        hit.found = true; scoreCount++;
+        document.getElementById("score").textContent = scoreCount;
+        const m = document.createElement("div");
+        m.className = "marker"; m.style.left = hit.x + "%"; m.style.top = hit.y + "%";
+        m.style.width = (hit.r * 2) + "%"; m.style.aspectRatio = "1/1";
+        document.getElementById("img-wrap").appendChild(m);
+        showToast(`✅ ${hit.name}`);
+        if (scoreCount === activeItems.length) endGame(true);
+      } else { misses++; }
+    });
+
+    // --- MODES: MCQ, BINARY, SEQUENCE, TRIAGE, ACRONYM ---
+    function setupCardMode() {
+      document.getElementById("card-stage").style.display = "block";
+      let pool = JSON.parse(JSON.stringify(activeQuiz.items || []));
+      if (activeQuiz.randomize) pool.sort(() => Math.random() - 0.5);
+      if (activeQuiz.limit > 0 && activeQuiz.limit < pool.length) pool = pool.slice(0, activeQuiz.limit);
+      activeItems = pool;
+      totalPossible = activeQuiz.type === "sequence" ? pool.reduce((acc, s) => acc + s.steps.length, 0) : pool.length;
+      document.getElementById("total-targets").textContent = totalPossible;
+      renderCardItem();
+    }
+
+    function renderCardItem() {
+      if (currentIndex >= activeItems.length) return endGame(true);
+      const item = activeItems[currentIndex];
+      const prog = document.getElementById("card-progress");
+      const promptEl = document.getElementById("card-prompt");
+      const inter = document.getElementById("card-interactive");
+      inter.innerHTML = "";
+      prog.textContent = `Item ${currentIndex + 1} of ${activeItems.length}`;
+
+      if (activeQuiz.type === "mcq") {
+        promptEl.textContent = item.q;
+        const rightText = item.options[item.correct];
+        const opts = activeQuiz.randomize ? [...item.options].sort(() => Math.random() - 0.5) : [...item.options];
+        opts.forEach((opt, i) => {
+          const b = document.createElement("button");
+          b.className = "opt-btn"; b.textContent = `${["A","B","C","D","E"][i]}. ${opt}`;
+          b.onclick = () => recordCardStep(opt === rightText, `Q${currentIndex+1}: ${item.q.substring(0,25)}...`);
+          inter.appendChild(b);
+        });
+      } else if (activeQuiz.type === "binary") {
+        promptEl.textContent = item.q;
+        const row = document.createElement("div"); row.className = "grid-2";
+        [["TRUE / GO", true, "btn-success"], ["FALSE / NO-GO", false, "btn-danger"]].forEach(([lbl, val, cls]) => {
+          const b = document.createElement("button");
+          b.className = `btn ${cls}`; b.style.padding = "18px"; b.style.width = "100%"; b.textContent = lbl;
+          b.onclick = () => {
+            const ok = item.ans === val;
+            if (!ok) { timeLeft = Math.max(1, timeLeft - 3); showToast("✖ Wrong! -3s Penalty"); }
+            recordCardStep(ok, item.q.substring(0, 30));
+          };
+          row.appendChild(b);
+        });
+        inter.appendChild(row);
+      } else if (activeQuiz.type === "sequence") {
+        seqProgress = 0;
+        promptEl.textContent = "Tap the steps below in the correct chronological order (1 to " + item.steps.length + "):";
+        const scrambled = item.steps.map((s, idx) => ({ text: s, order: idx })).sort(() => Math.random() - 0.5);
+        scrambled.forEach(st => {
+          const b = document.createElement("button");
+          b.className = "opt-btn"; b.textContent = st.text;
+          b.onclick = () => {
+            if (st.order === seqProgress) {
+              b.classList.add("used"); b.textContent = `✔ ${seqProgress + 1}. ${st.text}`;
+              seqProgress++; scoreCount++; document.getElementById("score").textContent = scoreCount;
+              if (seqProgress === item.steps.length) {
+                sessionDetails.push({ label: `Sequence ${currentIndex+1}`, ok: true });
+                showToast("✅ Sequence Complete!"); currentIndex++; renderCardItem();
+              }
+            } else { misses++; showToast("✖ Out of order!"); }
+          };
+          inter.appendChild(b);
+        });
+      } else if (activeQuiz.type === "triage") {
+        promptEl.textContent = `Sort into the correct category:\n"${item.item}"`;
+        const grid = document.createElement("div"); grid.className = "grid-2";
+        (activeQuiz.categories || []).forEach(cat => {
+          const b = document.createElement("button");
+          b.className = "btn btn-secondary"; b.style.padding = "16px"; b.textContent = `🗂️ ${cat}`;
+          b.onclick = () => recordCardStep(cat === item.cat, `${item.item} ➔ ${item.cat}`);
+          grid.appendChild(b);
+        });
+        inter.appendChild(grid);
+      } else if (activeQuiz.type === "acronym") {
+        promptEl.textContent = `Definition: "${item.def}"`;
+        const inp = document.createElement("input");
+        inp.type = "text"; inp.placeholder = "Type exact acronym or term...";
+        const sub = document.createElement("button");
+        sub.className = "btn"; sub.textContent = "Submit Answer";
+        const hintBtn = document.createElement("button");
+        hintBtn.className = "btn btn-secondary"; hintBtn.textContent = `💡 Hint (Starts with '${item.term[0]}', ${item.term.length} chars)`;
+        const checkAns = () => {
+          const guess = inp.value.trim().toLowerCase();
+          if (!guess) return;
+          const ok = guess === item.term.toLowerCase();
+          recordCardStep(ok, `${item.term}`);
+        };
+        inp.onkeydown = (e) => { if (e.key === "Enter") checkAns(); };
+        sub.onclick = checkAns;
+        inter.append(inp, sub, hintBtn);
+        setTimeout(() => inp.focus(), 50);
+      }
+    }
+
+    function recordCardStep(isRight, labelText) {
+      if (isRight) { scoreCount++; document.getElementById("score").textContent = scoreCount; showToast("✅ Correct!"); }
+      else { misses++; showToast("✖ Incorrect"); }
+      sessionDetails.push({ label: labelText, ok: isRight });
+      currentIndex++;
+      renderCardItem();
+    }
+
+    // --- MODE: CATCHPHRASE ---
+    function setupCatchphraseMode() {
+      document.getElementById("catchphrase-stage").style.display = "block";
+      totalPossible = 16;
+      document.getElementById("total-targets").textContent = "16 Tiles";
+      document.getElementById("cp-clue-display").textContent = activeQuiz.clue || "Identify the hidden image!";
+      document.getElementById("cp-game-img").src = activeQuiz.image;
+      const grid = document.getElementById("cp-grid");
+      grid.innerHTML = "";
+      let indices = [];
+      for (let i = 0; i < 16; i++) {
+        indices.push(i);
+        const t = document.createElement("div");
+        t.className = "cp-tile"; t.id = "cpt_" + i; t.textContent = i + 1;
+        grid.appendChild(t);
+      }
+      indices.sort(() => Math.random() - 0.5);
+      const stepMs = Math.max(1200, Math.floor(((activeQuiz.timeLimit || 60) * 1000) / 16));
+      cpTileInterval = setInterval(() => {
+        if (indices.length === 0) return clearInterval(cpTileInterval);
+        const nextIdx = indices.pop();
+        const tile = document.getElementById("cpt_" + nextIdx);
+        if (tile) tile.classList.add("revealed");
+      }, stepMs);
+    }
+
+    function submitCatchphraseGuess() {
+      const guess = document.getElementById("cp-guess-input").value.trim().toLowerCase();
+      if (!guess) return;
+      const accepted = (activeQuiz.answers || []).map(a => a.toLowerCase());
+      if (accepted.some(a => guess === a || guess.includes(a))) {
+        clearInterval(cpTileInterval);
+        const unrevealed = document.querySelectorAll(".cp-tile:not(.revealed)").length;
+        scoreCount = Math.max(1, unrevealed + 1);
+        document.querySelectorAll(".cp-tile").forEach(t => t.classList.add("revealed"));
+        sessionDetails = [{ label: `Solved (${guess}) with ${unrevealed} tiles covered`, ok: true }];
+        endGame(true);
+      } else {
+        misses++; showToast("✖ Keep trying!");
+        document.getElementById("cp-guess-input").value = "";
+      }
+    }
+
+    // ================= END GAME & LEADERBOARD =================
+    function endGame(completedAll) {
+      clearInterval(timerInterval); clearInterval(cpTileInterval);
+      if (activeQuiz.type === "spot" || activeQuiz.type === "pin") {
+        sessionDetails = activeItems.map(t => ({ label: t.name, ok: t.found }));
+      }
+      const timeTaken = (parseInt(activeQuiz.timeLimit) || 60) - Math.max(0, timeLeft);
+      document.getElementById("end-screen").style.display = "flex";
+      document.getElementById("end-title").textContent = completedAll ? "🎉 Challenge Complete!" : "⏱️ Time's Up!";
+      document.getElementById("end-summary").textContent = `${playerName}: Score ${scoreCount}/${totalPossible} in ${timeTaken}s (${misses} misses)`;
+
+      allScoresRef.child(activeQuiz.id).push({
+        id: currentSessionId, name: playerName, found: scoreCount, total: totalPossible,
+        time: timeTaken, misses: misses, details: sessionDetails, timestamp: Date.now()
+      });
+    }
+
+    function openLeaderboardOnly() {
+      document.getElementById("start-screen").style.display = "none";
+      document.getElementById("end-screen").style.display = "flex";
+      document.getElementById("end-title").textContent = `🏆 ${activeQuiz.title}`;
+      document.getElementById("end-summary").textContent = "Live Classroom Leaderboard";
+    }
+
+    function renderTable(scores) {
+      const tbody = document.getElementById("leaderboard-body");
+      scores.sort((a, b) => b.found !== a.found ? b.found - a.found : (a.time !== b.time ? a.time - b.time : a.misses - b.misses));
+      tbody.innerHTML = "";
+      scores.forEach((s, idx) => {
+        const medal = idx === 0 ? "🥇 " : idx === 1 ? "🥈 " : idx === 2 ? "🥉 " : `${idx + 1}. `;
+        const tr = document.createElement("tr");
+        tr.className = "player-row" + (s.id === currentSessionId ? " highlight" : "");
+        tr.innerHTML = `<td>${medal}</td><td>${escapeHtml(s.name)}</td><td><strong>${s.found}</strong> / ${s.total || totalPossible}</td><td>${s.time}s</td><td>${s.misses}</td>`;
+        const dTr = document.createElement("tr"); dTr.className = "details-row";
+        const badges = (s.details || []).map(d => `<span class="${d.ok ? 'badge-found' : 'badge-missed'}">${d.ok ? '✔' : '✖'} ${escapeHtml(d.label)}</span>`).join("");
+        dTr.innerHTML = `<td colspan="5"><div class="details-box">${badges || 'No item details recorded'}</div></td>`;
+        tr.onclick = () => dTr.style.display = dTr.style.display === "table-row" ? "none" : "table-row";
+        tbody.append(tr, dTr);
+      });
+    }
+
+    function clearScores() {
+      const pin = prompt("Instructor Reset: Type CLEAR to wipe scores for this quiz:");
+      if (pin && pin.trim().toUpperCase() === "CLEAR") allScoresRef.child(activeQuiz.id).set(null);
+    }
+
+    // ================= INSTRUCTOR STUDIO & PARSERS =================
+    function openStudio() { document.getElementById("start-screen").style.display = "none"; document.getElementById("studio-screen").style.display = "flex"; switchBuilderType(); }
+    function closeStudio() { document.getElementById("studio-screen").style.display = "none"; document.getElementById("start-screen").style.display = "flex"; }
+
+    function switchBuilderType() {
+      const type = document.getElementById("build-type").value;
+      const isImg = ["spot", "pin", "catchphrase"].includes(type);
+      document.getElementById("builder-doc").style.display = isImg ? "none" : "block";
+      document.getElementById("builder-img-section").style.display = isImg ? "block" : "none";
+      if (!isImg) {
+        document.getElementById("format-hint").textContent = formatHints[type] || "";
+        parseCurrentDocText();
+      } else {
+        document.getElementById("spot-pin-controls").style.display = type === "catchphrase" ? "none" : "block";
+        document.getElementById("spot-pin-list-wrap").style.display = type === "catchphrase" ? "none" : "block";
+        document.getElementById("cp-controls").style.display = type === "catchphrase" ? "block" : "none";
+      }
+    }
+
+    function handleDocxUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (file.name.endsWith(".txt")) {
+        const r = new FileReader();
+        r.onload = (ev) => { document.getElementById("raw-text-input").value = ev.target.result; parseCurrentDocText(); };
+        r.readAsText(file);
+      } else {
+        const r = new FileReader();
+        r.onload = (ev) => {
+          mammoth.extractRawText({ arrayBuffer: ev.target.result }).then(res => {
+            document.getElementById("raw-text-input").value = res.value;
+            parseCurrentDocText();
+          });
+        };
+        r.readAsArrayBuffer(file);
+      }
+    }
+
+    function parseCurrentDocText() {
+      const type = document.getElementById("build-type").value;
+      const raw = document.getElementById("raw-text-input").value.trim();
+      const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      parsedDocItems = [];
+
+      if (type === "mcq") {
+        let cur = null;
+        lines.forEach(line => {
+          const ansMatch = line.match(/^(?:Answer|Correct)\s*[:\-]\s*([A-E])/i);
+          if (ansMatch && cur) { cur.correct = ansMatch[1].toUpperCase().charCodeAt(0) - 65; return; }
+          const optMatch = line.match(/^(\*)?([A-E])[\)\.\:]\s*(.+)/i);
+          if (optMatch && cur) {
+            if (optMatch[1]) cur.correct = cur.options.length;
+            cur.options.push(optMatch[3].trim());
+            return;
+          }
+          if (cur && cur.options.length >= 2) parsedDocItems.push(cur);
+          cur = { q: line.replace(/^(?:Q\d*|Question\s*\d*|\d+)[\:\.\)]\s*/i, ""), options: [], correct: 0 };
+        });
+        if (cur && cur.options.length >= 2) parsedDocItems.push(cur);
+      } else if (type === "binary") {
+        lines.forEach(l => {
+          const m = l.match(/^(.+?)\s*\((T|F|True|False)\)\s*$/i);
+          if (m) parsedDocItems.push({ q: m[1].trim(), ans: m[2].toUpperCase().startsWith("T") });
+        });
+      } else if (type === "sequence") {
+        const blocks = raw.split(/\n\s*\n/);
+        blocks.forEach(b => {
+          const steps = b.split(/\r?\n/).map(s => s.replace(/^\d+[\.\)\:]\s*/, "").trim()).filter(Boolean);
+          if (steps.length >= 2) parsedDocItems.push({ steps });
+        });
+      } else if (type === "triage") {
+        let curCat = "General";
+        lines.forEach(l => {
+          const catMatch = l.match(/^Category\s*:\s*(.+)/i);
+          if (catMatch) { curCat = catMatch[1].trim(); return; }
+          const eqMatch = l.split("=");
+          if (eqMatch.length === 2) { parsedDocItems.push({ item: eqMatch[0].trim(), cat: eqMatch[1].trim() }); return; }
+          const itemText = l.replace(/^[\-\*\•]\s*/, "").trim();
+          if (itemText) parsedDocItems.push({ item: itemText, cat: curCat });
+        });
+      } else if (type === "acronym") {
+        lines.forEach(l => {
+          const pts = l.split(/\s*[\=\-]\s*/);
+          if (pts.length >= 2) parsedDocItems.push({ term: pts[0].trim(), def: pts.slice(1).join(" - ").trim() });
+        });
+      }
+
+      document.getElementById("doc-count").textContent = parsedDocItems.length;
+      document.getElementById("doc-preview-list").innerHTML = parsedDocItems.map((it, i) =>
+        `<div style="padding:4px 0; border-bottom:1px solid #1e293b;">${i+1}. ${escapeHtml(JSON.stringify(it).substring(0, 75))}...</div>`
+      ).join("") || "No valid items parsed yet.";
+    }
+
+    function handleImageUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const maxW = 900;
+          const scale = img.width > maxW ? maxW / img.width : 1;
+          canvas.width = img.width * scale; canvas.height = img.height * scale;
+          canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+          uploadedBase64Image = canvas.toDataURL("image/jpeg", 0.78);
+          document.getElementById("builder-img").src = uploadedBase64Image;
+          document.getElementById("builder-canvas-wrap").style.display = "inline-block";
+          clearBuilderTargets();
+        };
+        img.src = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function onBuilderImageClick(e) {
+      const type = document.getElementById("build-type").value;
+      if (type === "catchphrase") return;
+      const rect = e.target.getBoundingClientRect();
+      const x = parseFloat((((e.clientX - rect.left) / rect.width) * 100).toFixed(1));
+      const y = parseFloat((((e.clientY - rect.top) / rect.height) * 100).toFixed(1));
+      const name = prompt(`Enter label for Point #${builderTargets.length + 1}:`);
+      if (!name) return;
+      const r = parseFloat(document.getElementById("spot-radius").value) || 5;
+      builderTargets.push({ id: builderTargets.length + 1, name: name.trim(), x, y, r });
+
+      const dot = document.createElement("div");
+      dot.className = "admin-dot"; dot.style.left = x + "%"; dot.style.top = y + "%";
+      dot.style.width = (r * 2) + "%"; dot.style.aspectRatio = "1/1"; dot.textContent = builderTargets.length;
+      document.getElementById("builder-canvas-wrap").appendChild(dot);
+      document.getElementById("spot-count").textContent = builderTargets.length;
+      document.getElementById("spot-preview-list").innerHTML = builderTargets.map(t => `<div>#${t.id}: ${escapeHtml(t.name)} (${t.x}%, ${t.y}%)</div>`).join("");
+    }
+
+    function clearBuilderTargets() {
+      builderTargets = [];
+      document.querySelectorAll(".admin-dot").forEach(d => d.remove());
+      document.getElementById("spot-count").textContent = "0";
+      document.getElementById("spot-preview-list").innerHTML = "Click on the image above to place target points.";
+    }
+
+    function publishQuiz() {
+      const title = document.getElementById("build-title").value.trim();
+      const type = document.getElementById("build-type").value;
+      const timeLimit = parseInt(document.getElementById("build-time").value) || 60;
+      if (!title) return alert("Please enter a Quiz Title!");
+
+      const payload = { title, type, timeLimit, createdAt: Date.now() };
+      if (["spot", "pin"].includes(type)) {
+        if (!uploadedBase64Image || builderTargets.length === 0) return alert("Upload an image and click at least 1 target point!");
+        payload.image = uploadedBase64Image; payload.targets = builderTargets;
+      } else if (type === "catchphrase") {
+        const ans = document.getElementById("build-cp-answer").value.split(",").map(s => s.trim()).filter(Boolean);
+        if (!uploadedBase64Image || ans.length === 0) return alert("Upload an image and provide at least 1 accepted answer!");
+        payload.image = uploadedBase64Image;
+        payload.clue = document.getElementById("build-cp-clue").value.trim() || "Identify the hidden image!";
+        payload.answers = ans;
+      } else {
+        if (parsedDocItems.length === 0) return alert("Please upload or paste valid items first!");
+        payload.items = parsedDocItems;
+        payload.limit = parseInt(document.getElementById("build-limit").value) || 0;
+        payload.randomize = document.getElementById("build-random").checked;
+        if (type === "triage") payload.categories = [...new Set(parsedDocItems.map(i => i.cat))];
+      }
+
+      quizzesRef.push(payload).then((ref) => {
+        showToast("🎉 Quiz Published Live!");
+        closeStudio();
+        document.getElementById("quiz-selector").value = ref.key;
+        onQuizSelectChange();
+      });
+    }
+
+    function deleteSelectedQuiz() {
+      const selId = document.getElementById("quiz-selector").value;
+      if (selId === "default_spot_radios") return alert("The built-in default quiz cannot be deleted.");
+      const confirmPin = prompt(`Type DELETE to permanently remove "${availableQuizzes[selId].title}":`);
+      if (confirmPin === "DELETE") {
+        quizzesRef.child(selId).set(null);
+        allScoresRef.child(selId).set(null);
+        closeStudio();
+      }
+    }
+
+    let toastTimeout;
+    function showToast(msg) {
+      const t = document.getElementById("toast");
+      t.textContent = msg; t.style.opacity = "1";
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => t.style.opacity = "0", 1800);
+    }
+
+    function escapeHtml(s) { return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+  </script>
+</body>
+</html>
