@@ -91,8 +91,10 @@
       <h2>📡 Classroom Training Hub</h2>
       <p style="color:#94a3b8; font-size:0.95rem;">Select an active training quiz below and enter your name to begin.</p>
       <label style="text-align:left;">Select Active Quiz:</label>
-      <select id="quiz-selector" onchange="onQuizSelectChange()"></select>
-      <div id="quiz-meta-info" style="font-size:0.82rem; color:#38bdf8; margin: 6px 0 12px 0; text-align:left;">Loading quizzes...</div>
+      <select id="quiz-selector" onchange="onQuizSelectChange()">
+        <option value="" disabled selected>-- Select a Quiz --</option>
+      </select>
+      <div id="quiz-meta-info" style="font-size:0.82rem; color:#38bdf8; margin: 6px 0 12px 0; text-align:left;">Please select a quiz from the list above.</div>
       <label style="text-align:left;">Your Name / Callsign:</label>
       <input type="text" id="player-name" placeholder="Enter your name..." maxlength="25" />
       <button class="btn" onclick="startGame()">🚀 Start Challenge</button>
@@ -321,7 +323,7 @@
     };
 
     let availableQuizzes = { "default_spot_radios": defaultQuiz };
-    let activeQuiz = defaultQuiz, activeScoreListener = null;
+    let activeQuiz = null, activeScoreListener = null;
     let playerName = "", timeLeft = 60, timerInterval = null, cpTileInterval = null;
     let scoreCount = 0, misses = 0, totalPossible = 14, sessionDetails = [];
     let currentSessionId = Date.now() + "_" + Math.random().toString(36).substring(2, 7);
@@ -341,22 +343,38 @@
 
     function populateQuizDropdown() {
       const sel = document.getElementById("quiz-selector");
-      const prev = sel.value || "default_spot_radios";
-      sel.innerHTML = "";
+      const prev = sel.value; 
+      sel.innerHTML = `<option value="" disabled ${!prev ? 'selected' : ''}>-- Select a Quiz --</option>`;
       Object.values(availableQuizzes).forEach(q => {
         const opt = document.createElement("option");
         opt.value = q.id;
         opt.textContent = `${modeIcons[q.type] || '🎯'} ${q.title}`;
         sel.appendChild(opt);
       });
-      if (availableQuizzes[prev]) sel.value = prev;
+      if (prev && availableQuizzes[prev]) {
+        sel.value = prev;
+      } else {
+        sel.value = "";
+      }
       onQuizSelectChange();
     }
 
     function onQuizSelectChange() {
-      activeQuiz = availableQuizzes[document.getElementById("quiz-selector").value] || defaultQuiz;
+      const selId = document.getElementById("quiz-selector").value;
+      const meta = document.getElementById("quiz-meta-info");
+      
+      if (!selId || !availableQuizzes[selId]) {
+        activeQuiz = null;
+        meta.textContent = "Please select a quiz from the list above.";
+        if (activeScoreListener) activeScoreListener.off();
+        document.getElementById("leaderboard-body").innerHTML = `<tr><td colspan="5" style="text-align:center; color:#94a3b8;">Please select a quiz to view scores.</td></tr>`;
+        return;
+      }
+
+      activeQuiz = availableQuizzes[selId];
       const count = activeQuiz.targets ? activeQuiz.targets.length : (activeQuiz.items ? (activeQuiz.limit > 0 ? Math.min(activeQuiz.limit, activeQuiz.items.length) : activeQuiz.items.length) : 1);
-      document.getElementById("quiz-meta-info").textContent = `Mode: ${activeQuiz.type.toUpperCase()} • ${count} Items • ${activeQuiz.timeLimit}s Limit`;
+      meta.textContent = `Mode: ${activeQuiz.type.toUpperCase()} • ${count} Items • ${activeQuiz.timeLimit}s Limit`;
+      
       if (activeScoreListener) activeScoreListener.off();
       activeScoreListener = allScoresRef.child(activeQuiz.id);
       activeScoreListener.on('value', (snap) => {
@@ -371,6 +389,7 @@
 
     // ================= GAMEPLAY ROUTER =================
     function startGame() {
+      if (!activeQuiz) return alert("Please select a quiz from the dropdown menu first!");
       playerName = document.getElementById("player-name").value.trim();
       if (!playerName) return alert("Please enter your name or callsign!");
       document.getElementById("display-name").textContent = playerName;
@@ -631,6 +650,7 @@
     }
 
     function openLeaderboardOnly() {
+      if (!activeQuiz) return alert("Please select a quiz from the dropdown menu first!");
       document.getElementById("start-screen").style.display = "none";
       document.getElementById("end-screen").style.display = "flex";
       document.getElementById("end-title").textContent = `🏆 ${activeQuiz.title}`;
@@ -655,6 +675,7 @@
     }
 
     function clearScores() {
+      if (!activeQuiz) return;
       const pin = prompt("Instructor Reset: Type CLEAR to wipe scores for this quiz:");
       if (pin && pin.trim().toUpperCase() === "CLEAR") allScoresRef.child(activeQuiz.id).set(null);
     }
