@@ -3,286 +3,499 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Classroom Quiz Hub</title>
+  <title>Classroom Training Hub</title>
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+  <!-- Word Parser -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+  <!-- Google Fonts & FontAwesome -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <style>
-    * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
-    body { margin: 0; background: #0f172a; color: #f8fafc; text-align: center; overflow-x: hidden; }
-    .header { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; background: #1e293b; border-bottom: 2px solid #334155; position: sticky; top: 0; z-index: 10; }
-    .stat { font-size: 1.05rem; font-weight: 700; }
-    .timer { color: #38bdf8; font-variant-numeric: tabular-nums; }
-    .timer.low { color: #ef4444; animation: pulse 0.8s infinite; }
-    @keyframes pulse { 50% { opacity: 0.4; } }
+    :root {
+      --bg-dark: #0a101a;
+      --bg-card: #111a28;
+      --text-main: #e2e8f0;
+      --text-muted: #94a3b8;
+      --accent-blue: #0096ff;
+      --accent-yellow: #f59e0b;
+      --success-green: #16a34a;
+      --border-color: #26354d;
+    }
 
-    .overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.96); display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 20px 12px; z-index: 30; overflow-y: auto; }
-    .card { background: #1e293b; padding: 22px; border-radius: 12px; max-width: 740px; width: 100%; border: 1px solid #334155; margin: auto; text-align: left; }
-    .card-center { text-align: center; }
-    h2, h3 { margin-top: 0; color: #f8fafc; }
-    label { display: block; font-size: 0.85rem; color: #94a3b8; margin-top: 10px; font-weight: 600; }
-    input[type="text"], input[type="number"], select, textarea { width: 100%; padding: 11px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: white; font-size: 0.95rem; margin-top: 6px; }
-    input[type="file"] { margin-top: 6px; color: #cbd5e1; font-size: 0.9rem; }
+    * { box-sizing: border-box; font-family: 'Inter', sans-serif; }
+    body {
+      margin: 0;
+      background-color: var(--bg-dark);
+      background-image: linear-gradient(180deg, #0a101a 0%, #0d1626 50%, #090e18 100%), 
+                        url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="600" viewBox="0 0 1200 600"><defs><linearGradient id="horizon" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="%231a263b" stop-opacity="0.3"/><stop offset="100%" stop-color="%230a101a" stop-opacity="0.9"/></linearGradient></defs><rect width="1200" height="600" fill="url(%23horizon)"/><path fill="%23070c14" d="M0 480l120-25 70 35 90-15 50 20 80-35 45 25 70-15 65 30 45-20 60 15 80-40 65 20 50-30 40 15 60-25 45 30 50-35 55 15 40-25v120H0z"/><circle cx="950" cy="220" r="3" fill="%23ffffff" opacity="0.4"/><circle cx="200" cy="120" r="2" fill="%23ffffff" opacity="0.3"/><circle cx="450" cy="80" r="2.5" fill="%23ffffff" opacity="0.5"/></svg>');
+      background-repeat: no-repeat, repeat-x;
+      background-position: top, bottom;
+      background-size: cover, auto;
+      color: var(--text-main);
+      overflow-x: hidden;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
 
-    .btn { background: #0284c7; color: white; border: none; padding: 12px 18px; font-size: 1rem; font-weight: 700; border-radius: 8px; cursor: pointer; width: 100%; margin-top: 10px; transition: 0.15s; }
-    .btn:hover { background: #0369a1; }
-    .btn-secondary { background: #334155; }
-    .btn-secondary:hover { background: #475569; }
-    .btn-warning { background: #d97706; }
-    .btn-warning:hover { background: #b45309; }
-    .btn-success { background: #16a34a; }
-    .btn-success:hover { background: #15803d; }
-    .btn-danger { background: #991b1b; font-size: 0.85rem; padding: 8px 14px; width: auto; margin-top: 0; }
-    .btn-danger:hover { background: #7f1d1d; }
-    .btn-row { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+    /* Top Header - Exact Match to Screenshot */
+    .main-header {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      padding: 16px 40px;
+      border-bottom: 1px solid var(--border-color);
+      background-color: var(--bg-card);
+      gap: 20px;
+    }
+    .header-left { display: flex; align-items: center; gap: 16px; }
+    .header-left i { font-size: 38px; color: #38bdf8; }
+    .header-title-area { display: flex; flex-direction: column; gap: 3px; }
+    .header-title { font-size: 22px; font-weight: 700; margin: 0; letter-spacing: -0.3px; color: #ffffff; }
+    .header-subtitle { font-size: 13px; color: var(--text-muted); font-weight: 400; word-spacing: 2px; }
+    
+    .header-center-quote {
+      text-align: center;
+      font-style: italic;
+      color: var(--text-muted);
+      font-size: 13px;
+      letter-spacing: 0.2px;
+    }
 
-    .stage { display: none; max-width: 850px; margin: 16px auto; padding: 0 12px; }
-    .box { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 22px; text-align: left; }
-    .progress { font-size: 0.82rem; color: #38bdf8; text-transform: uppercase; font-weight: 700; }
-    .prompt-lg { font-size: 1.25rem; font-weight: 700; margin: 10px 0 18px 0; line-height: 1.4; }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: 13px;
+      color: var(--text-muted);
+      border: 1px solid var(--border-color);
+      background: rgba(10, 16, 26, 0.5);
+      padding: 8px 18px;
+      border-radius: 8px;
+    }
+    .header-right i { color: #38bdf8; font-size: 18px; }
+    .header-status-text { display: flex; flex-direction: column; line-height: 1.25; text-align: left; }
+    .header-status-title { font-weight: 700; color: #ffffff; font-size: 12px; letter-spacing: 0.5px; }
+    .header-status-sub { font-size: 11px; color: var(--text-muted); }
 
-    /* Visual Stages */
-    #img-wrap { position: relative; display: inline-block; width: 100%; user-select: none; }
-    #scene { width: 100%; height: auto; display: block; border-radius: 8px; cursor: crosshair; }
-    .marker { position: absolute; border: 3px solid #22c55e; background: rgba(34, 197, 94, 0.25); border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; }
-    .pin-marker { position: absolute; width: 30px; height: 30px; border-radius: 50%; background: #0f172a; border: 2px solid #94a3b8; color: white; font-weight: 800; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; transform: translate(-50%, -50%); pointer-events: none; }
-    .pin-marker.active { background: #f59e0b; border-color: #fff; color: #000; transform: translate(-50%, -50%) scale(1.25); z-index: 5; box-shadow: 0 0 12px #f59e0b; }
-    .pin-marker.done { background: #16a34a; border-color: #fff; }
+    /* Main Layout */
+    .app-container {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 32px;
+      padding: 32px 40px;
+      max-width: 1440px;
+      margin: 0 auto;
+      width: 100%;
+    }
 
-    /* Interactive Option Buttons */
-    .opt-btn { background: #0f172a; border: 2px solid #334155; color: #f8fafc; padding: 13px 16px; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; width: 100%; text-align: left; margin-bottom: 8px; transition: 0.15s; }
-    .opt-btn:hover { border-color: #38bdf8; background: #162238; }
-    .opt-btn.used { opacity: 0.35; pointer-events: none; border-color: #22c55e; }
-    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+    .card {
+      background-color: var(--bg-card);
+      border-radius: 12px;
+      padding: 32px;
+      border: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+    }
+    h2 { font-size: 20px; font-weight: 700; margin: 0 0 8px 0; }
+    .section-desc { color: var(--text-muted); font-size: 14px; margin-bottom: 24px;}
 
-    /* Catchphrase */
-    .cp-board { position: relative; width: 100%; border-radius: 10px; overflow: hidden; border: 2px solid #334155; background: #000; }
-    .cp-board img { width: 100%; display: block; }
-    .cp-grid { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(4, 1fr); }
-    .cp-tile { background: #1e293b; border: 1px solid #334155; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #475569; font-size: 1.2rem; transition: opacity 0.4s ease; }
-    .cp-tile.revealed { opacity: 0; pointer-events: none; }
+    /* Step Numbers */
+    .step-wrap { display: flex; gap: 16px; margin-bottom: 32px; }
+    .step-num {
+      width: 32px; height: 32px;
+      background: var(--accent-blue); color: #fff;
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-weight: 700; flex-shrink: 0;
+    }
+    .step-content { flex: 1; }
 
-    /* Builder */
-    #builder-canvas-wrap { position: relative; display: inline-block; width: 100%; margin-top: 10px; border: 1px dashed #475569; border-radius: 8px; overflow: hidden; }
-    #builder-img { width: 100%; display: block; cursor: crosshair; }
-    .admin-dot { position: absolute; border: 2px solid #f59e0b; background: rgba(245, 158, 11, 0.4); color: #fff; font-size: 0.75rem; font-weight: bold; display: flex; align-items: center; justify-content: center; border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; }
-    .preview-list { max-height: 170px; overflow-y: auto; background: #0f172a; padding: 10px; border-radius: 8px; border: 1px solid #334155; margin-top: 8px; font-size: 0.85rem; }
+    /* Quiz Selector */
+    .quiz-selector-wrap { position: relative; }
+    select#quiz-selector {
+      width: 100%; padding: 16px;
+      background: #0a101a; border: 1px solid var(--border-color);
+      color: #fff; border-radius: 8px;
+      font-size: 16px; appearance: none;
+      cursor: pointer;
+    }
+    .quiz-selector-wrap::after {
+      content: '\f078'; font-family: 'Font Awesome 6 Free'; font-weight: 900;
+      position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+      color: var(--text-muted); pointer-events: none;
+    }
+    select#quiz-selector:focus { outline: none; border-color: var(--accent-blue); }
 
-    /* Leaderboard */
-    .table-wrap { width: 100%; overflow-x: auto; margin-top: 14px; max-height: 45vh; overflow-y: auto; border: 1px solid #334155; border-radius: 8px; }
-    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.92rem; }
-    th, td { padding: 10px 12px; border-bottom: 1px solid #334155; }
-    th { background: #0f172a; color: #94a3b8; position: sticky; top: 0; font-size: 0.8rem; text-transform: uppercase; }
-    tr.player-row { cursor: pointer; }
-    tr.player-row:hover { background: #26354d; }
-    tr.highlight { background: rgba(2, 132, 199, 0.25); font-weight: bold; }
-    .details-row { display: none; background: #0f172a; font-size: 0.85rem; }
-    .details-box { padding: 8px 12px; display: flex; flex-wrap: wrap; gap: 6px; }
-    .badge-found { background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid #22c55e; padding: 2px 8px; border-radius: 999px; }
-    .badge-missed { background: rgba(239, 68, 68, 0.12); color: #f87171; border: 1px solid #ef4444; padding: 2px 8px; border-radius: 999px; }
-    #toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #16a34a; color: white; padding: 10px 20px; border-radius: 999px; font-weight: 600; opacity: 0; transition: 0.2s; pointer-events: none; z-index: 50; box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
+    /* Quiz Preview Card */
+    #quiz-preview-card {
+      display: none;
+      background: #0a101a; border-radius: 8px;
+      padding: 20px; margin-top: 16px;
+      grid-template-columns: 120px 1fr; gap: 16px;
+      border: 1px solid var(--border-color);
+    }
+    #q-prev-img { width: 120px; height: 80px; object-fit: cover; border-radius: 4px; }
+    .q-prev-details { display: flex; flex-direction: column; gap: 8px; font-size: 14px; }
+    .q-prev-title { font-weight: 700; color: #fff; font-size: 16px;}
+    .q-prev-desc { color: var(--text-muted); line-height: 1.4; }
+    .q-meta-row { display: flex; align-items: center; gap: 8px; }
+    .q-meta-row i { width: 16px; color: var(--accent-blue); }
+    .tag-diff {
+      background: var(--accent-yellow); color: #0a101a;
+      padding: 2px 8px; border-radius: 4px; font-weight: 600; font-size: 12px;
+      text-transform: uppercase;
+    }
+
+    /* Name Input */
+    .callsign-input-wrap { position: relative; }
+    .callsign-input-wrap i { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
+    input#player-name {
+      width: 100%; padding: 16px 16px 16px 48px;
+      background: #0a101a; border: 1px solid var(--border-color);
+      color: #fff; border-radius: 8px; font-size: 16px;
+    }
+    input#player-name:focus { outline: none; border-color: var(--accent-blue); }
+    input#player-name::placeholder { color: #4a5568; }
+    .input-hint { color: var(--text-muted); font-size: 12px; margin-top: 8px; }
+
+    /* Get Started Timeline */
+    .timeline { display: flex; justify-content: space-between; position: relative; margin: 40px 0; }
+    .timeline::before { content: ''; position: absolute; top: 15px; left: 0; right: 0; height: 2px; background: var(--border-color); }
+    .tl-item { position: relative; display: flex; flex-direction: column; align-items: center; z-index: 1; width: 25%; text-align: center;}
+    .tl-dot {
+      width: 32px; height: 32px; background: #0a101a; border: 2px solid var(--accent-blue);
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 14px; color: var(--accent-blue); margin-bottom: 8px;
+    }
+    .tl-dot.active { background: var(--accent-blue); color: #fff; border-color: var(--accent-blue);}
+    .tl-text { font-size: 12px; color: var(--text-muted); }
+
+    /* Action Buttons */
+    .action-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: auto; }
+    .btn {
+      padding: 16px; border: none; border-radius: 8px;
+      font-size: 16px; font-weight: 600; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: opacity 0.2s;
+    }
+    .btn:hover { opacity: 0.9; }
+    .btn-start { background: var(--accent-blue); color: white; }
+    .btn-leaderboard { background: transparent; color: var(--accent-blue); border: 1px solid var(--accent-blue); }
+    .action-hint { color: var(--text-muted); font-size: 12px; text-align: center; margin-top: 16px; }
+
+    /* Sidebar */
+    .sidebar-col { display: flex; flex-direction: column; gap: 32px; }
+    .widget { background-color: var(--bg-card); border-radius: 12px; padding: 24px; border: 1px solid var(--border-color); }
+    .widget-title { font-size: 18px; font-weight: 700; margin: 0 0 16px 0; display: flex; align-items: center; gap: 10px; }
+    .widget-title i.fa-trophy { color: var(--accent-yellow); }
+    .widget-title i.fa-circle-check { color: var(--success-green); }
+
+    /* Leaderboard List */
+    .lb-list { display: flex; flex-direction: column; gap: 12px; }
+    .lb-item { display: grid; grid-template-columns: 30px 1fr 60px 40px; align-items: center; gap: 8px; font-size: 14px; color: var(--text-main); border-bottom: 1px solid var(--border-color); padding-bottom: 12px;}
+    .lb-item:last-child { border-bottom: none; padding-bottom: 0; }
+    .lb-rank {
+      width: 24px; height: 24px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 12px;
+    }
+    .lb-rank-1 { background: var(--accent-yellow); color: #0a101a; }
+    .lb-rank-2 { background: var(--text-muted); color: #0a101a; }
+    .lb-rank-3 { background: #c2780a; color: #0a101a; }
+    .lb-name { font-weight: 600; }
+    .lb-score { color: var(--text-muted); text-align: right; }
+    .lb-time { color: var(--text-muted); text-align: right; }
+    .btn-full-lb { margin-top: 16px; padding: 12px; font-size: 14px; width: 100%;}
+
+    /* Benefits List */
+    .benefits-list { display: flex; flex-direction: column; gap: 16px; font-size: 14px; color: var(--text-main); }
+    .benefit-item { display: flex; align-items: flex-start; gap: 12px; }
+    .benefit-item i { color: var(--success-green); margin-top: 2px; font-size: 16px;}
+    .quote-block { margin-top: 24px; font-style: italic; color: var(--text-muted); border-left: 3px solid var(--border-color); padding-left: 16px; font-size: 14px; line-height: 1.5; }
+
+    /* Instructor Footer */
+    .inst-footer {
+      grid-column: 1 / -1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 40px;
+      background-color: var(--bg-card);
+      border-top: 1px solid var(--border-color);
+      margin-top: 16px;
+    }
+    .inst-left { display: flex; align-items: center; gap: 16px; }
+    .inst-left i { font-size: 24px; color: var(--accent-yellow); }
+    .inst-title { font-size: 16px; font-weight: 600; margin: 0; }
+    .inst-desc { font-size: 12px; color: var(--text-muted); margin: 0; }
+    .btn-inst-login { background: var(--accent-yellow); color: #0a101a; width: auto; padding: 10px 20px; font-size: 14px; }
+
+    /* Overlays & Modals */
+    .overlay { position: fixed; inset: 0; background: rgba(10, 16, 26, 0.95); display: none; flex-direction: column; z-index: 50; overflow-y: auto; }
+    .overlay .card { max-width: 800px; width: 90%; margin: 40px auto; }
   </style>
 </head>
 <body>
 
-  <!-- START SCREEN -->
-  <div id="start-screen" class="overlay">
-    <div class="card card-center">
-      <h2>📡 Classroom Training Hub</h2>
-      <p style="color:#94a3b8; font-size:0.95rem;">Select an active training quiz below and enter your name to begin.</p>
-      <label style="text-align:left;">Select Active Quiz:</label>
-      <select id="quiz-selector" onchange="onQuizSelectChange()">
-        <option value="" disabled selected>-- Select a Quiz --</option>
-      </select>
-      <div id="quiz-meta-info" style="font-size:0.82rem; color:#38bdf8; margin: 6px 0 12px 0; text-align:left;">Please select a quiz from the list above.</div>
-      <label style="text-align:left;">Your Name / Callsign:</label>
-      <input type="text" id="player-name" placeholder="Enter your name..." maxlength="25" />
-      <button class="btn" onclick="startGame()">🚀 Start Challenge</button>
-      <button class="btn btn-secondary" onclick="openLeaderboardOnly()">🏆 View Live Leaderboard</button>
-      <hr style="border:0; border-top:1px solid #334155; margin: 16px 0;">
-      <button class="btn btn-warning" onclick="openStudio()">🛠️ Instructor Studio (Create / Manage Quizzes)</button>
+  <!-- TOP HEADER BAR -->
+  <header class="main-header">
+    <div class="header-left">
+      <i class="fas fa-graduation-cap"></i>
+      <div class="header-title-area">
+        <h1 class="header-title">Classroom Training Hub</h1>
+        <div class="header-subtitle">Learn &nbsp;•&nbsp; Practise &nbsp;•&nbsp; Improve &nbsp;•&nbsp; Compete</div>
+      </div>
     </div>
+    <div class="header-center-quote">
+      "Knowledge builds capability"
+    </div>
+    <div class="header-right">
+      <i class="far fa-clock"></i>
+      <div class="header-status-text">
+        <span class="header-status-title">READY TO LEARN</span>
+        <span class="header-status-sub">Select a quiz to begin</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN APP CONTENT GRID -->
+  <div class="app-container">
+
+    <!-- LEFT COLUMN: STUDENT AREA (3 Steps) -->
+    <div class="student-col card">
+      <h2>Student Area</h2>
+      <p class="section-desc">Select a quiz, enter your name and start learning.</p>
+
+      <!-- STEP 1: Select Quiz -->
+      <div class="step-wrap">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <label>Select a Training Quiz</label>
+          <div class="quiz-selector-wrap">
+            <select id="quiz-selector" onchange="onQuizSelectChange()">
+              <option value="" disabled selected>-- Select a Quiz --</option>
+            </select>
+          </div>
+          <!-- Dynamic Quiz Preview Card -->
+          <div id="quiz-preview-card">
+            <img id="q-prev-img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" alt="Quiz Image">
+            <div class="q-prev-details">
+              <div class="q-prev-title" id="q-prev-title">Loading...</div>
+              <div class="q-prev-desc" id="q-prev-desc"></div>
+              <div class="q-meta-row"><i class="far fa-file-alt"></i> Question Type: <span id="q-prev-qtype"></span></div>
+              <div class="q-meta-row"><i class="far fa-question-circle"></i> Number of Questions: <span id="q-prev-qcount"></span></div>
+              <div class="q-meta-row"><i class="far fa-clock"></i> Time Limit: <span id="q-prev-time"></span></div>
+              <div class="q-meta-row"><i class="fas fa-chart-line"></i> Difficulty: <span id="q-prev-diff"><span class="tag-diff">Intermediate</span></span></div>
+              <div class="q-meta-row"><i class="fas fa-bullseye"></i> Learning Objective: <span id="q-prev-obj"></span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 2: Enter Name -->
+      <div class="step-wrap">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <label>Name</label>
+          <div class="callsign-input-wrap">
+            <i class="far fa-user"></i>
+            <input type="text" id="player-name" placeholder="e.g. Falcon-1" maxlength="25" />
+          </div>
+          <div class="input-hint">This name will be shown on the leaderboard.</div>
+        </div>
+      </div>
+
+      <!-- STEP 3: Get Started -->
+      <div class="step-wrap" style="margin-bottom: 0;">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <label>Get Started</label>
+          <div class="timeline">
+            <div class="tl-item"><div class="tl-dot active"><i class="fas fa-check"></i></div><div class="tl-text">Join Quiz</div></div>
+            <div class="tl-item"><div class="tl-dot">2</div><div class="tl-text">Complete Assessment</div></div>
+            <div class="tl-item"><div class="tl-dot">3</div><div class="tl-text">View Results</div></div>
+            <div class="tl-item"><div class="tl-dot">4</div><div class="tl-text">See Leaderboard</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="action-row">
+        <button class="btn btn-start" onclick="startGame()"><i class="fas fa-rocket"></i> Start Quiz</button>
+        <button class="btn btn-leaderboard" onclick="openLeaderboardOnly()"><i class="fas fa-trophy"></i> View Leaderboard <i class="fas fa-chevron-right"></i></button>
+      </div>
+      <div class="action-hint">Test your knowledge. Improve your skills. See how you rank!</div>
+    </div>
+
+    <!-- RIGHT COLUMN: SIDEBAR WIDGETS -->
+    <div class="sidebar-col">
+      <div class="widget widget-top-3">
+        <h3 class="widget-title"><i class="fas fa-trophy"></i> Current Top 3</h3>
+        <p class="section-desc" style="margin-bottom:16px;">Top scores for this quiz</p>
+        <div class="lb-list" id="sidebar-lb-list">
+          <div class="lb-item" style="justify-content: center; color: var(--text-muted); border:none;">Select a quiz to view scores.</div>
+        </div>
+        <button class="btn btn-leaderboard btn-full-lb" onclick="openLeaderboardOnly()">View Full Leaderboard <i class="fas fa-chevron-right"></i></button>
+      </div>
+
+      <div class="widget widget-why">
+        <h3 class="widget-title"><i class="fas fa-circle-check"></i> Why Take This Quiz?</h3>
+        <div class="benefits-list">
+          <div class="benefit-item"><i class="fas fa-check"></i> <span>Build real-world recognition skills</span></div>
+          <div class="benefit-item"><i class="fas fa-check"></i> <span>Reinforce classroom learning</span></div>
+          <div class="benefit-item"><i class="fas fa-check"></i> <span>Track your progress</span></div>
+          <div class="benefit-item"><i class="fas fa-check"></i> <span>Compete with your peers</span></div>
+        </div>
+        <div class="quote-block">"The more you know, the further you can see."</div>
+      </div>
+    </div>
+
+    <!-- INSTRUCTOR FOOTER BAR -->
+    <footer class="inst-footer">
+      <div class="inst-left">
+        <i class="fas fa-cog"></i>
+        <div>
+          <h3 class="inst-title">Instructor Area</h3>
+          <p class="inst-desc">Create and manage quizzes, view analytics and configure settings.</p>
+        </div>
+      </div>
+      <button class="btn btn-inst-login" onclick="openStudio()"><i class="fas fa-lock"></i> Instructor Login <i class="fas fa-chevron-right"></i></button>
+    </footer>
+
   </div>
 
   <!-- INSTRUCTOR STUDIO -->
-  <div id="studio-screen" class="overlay" style="display: none;">
-    <div class="card">
+  <div id="studio-screen" class="overlay">
+    <div class="card" style="max-width: 800px; margin: 40px auto;">
       <div style="display:flex; justify-content:space-between; align-items:center;">
         <h2 style="margin:0;">🛠️ Instructor Quiz Studio</h2>
-        <button class="btn btn-secondary" style="width:auto; margin:0; padding:8px 14px;" onclick="closeStudio()">✖ Close</button>
+        <button class="btn btn-secondary" style="width:auto; margin:0; padding:8px 14px; background:#334155; color:#fff;" onclick="closeStudio()">✖ Close</button>
       </div>
+      
       <label>1. Quiz Title & Topic:</label>
-      <input type="text" id="build-title" placeholder="e.g. Radar & EW Fundamentals - Module 1" />
+      <input type="text" id="build-title" placeholder="e.g. Spot the Radios (14 RF Devices)" style="width:100%; padding:11px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-dark); color:white; margin-top:6px;" />
+
+      <label>Quiz Description (for student preview card):</label>
+      <input type="text" id="build-desc" placeholder="e.g. Identify common RF devices from imagery." style="width:100%; padding:11px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-dark); color:white; margin-top:6px;" />
+
       <div class="btn-row">
         <div style="flex:1;">
-          <label>2. Game Mode:</label>
-          <select id="build-type" onchange="switchBuilderType()">
+          <label>Game Mode:</label>
+          <select id="build-type" onchange="switchBuilderType()" style="width:100%; padding:11px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-dark); color:white; margin-top:6px;">
+            <option value="spot">🎯 Spot the Targets (Hidden Image Zones)</option>
+            <option value="pin">📌 Schematic Pin-Matcher (Numbered Image Pins)</option>
+            <option value="catchphrase">🟩 Catchphrase (16-Tile Image Reveal)</option>
             <option value="mcq">📝 Multiple Choice (.docx / Text)</option>
             <option value="binary">⚡ Binary Blitz - True/False (.docx / Text)</option>
             <option value="sequence">🔢 Sequence Builder - Order Steps (.docx / Text)</option>
             <option value="triage">🗂️ Rapid Triage - Bucket Sorter (.docx / Text)</option>
             <option value="acronym">🔤 Acronym & Term Decoder (.docx / Text)</option>
-            <option value="spot">🎯 Spot the Targets (Hidden Image Zones)</option>
-            <option value="pin">📌 Schematic Pin-Matcher (Numbered Image Pins)</option>
-            <option value="catchphrase">🟩 Catchphrase (16-Tile Image Reveal)</option>
           </select>
         </div>
         <div style="width:130px;">
           <label>Time Limit (s):</label>
-          <input type="number" id="build-time" value="60" min="15" max="600" />
+          <input type="number" id="build-time" value="60" min="15" max="600" style="width:100%; padding:11px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-dark); color:white; margin-top:6px;" />
         </div>
       </div>
 
-      <!-- TEXT / DOCX BUILDER (Modes 1-5) -->
-      <div id="builder-doc" style="margin-top:12px;">
-        <div style="background:#0f172a; padding:12px; border-radius:8px; border:1px solid #334155;">
-          <label style="margin-top:0; color:#38bdf8;">Upload Word (.docx) / Text (.txt) OR Paste Below:</label>
+      <div class="btn-row">
+        <div style="flex:1;">
+          <label>Difficulty Rating:</label>
+          <select id="build-diff" style="width:100%; padding:11px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-dark); color:white; margin-top:6px;">
+            <option value="Beginner">Beginner</option>
+            <option value="Intermediate" selected>Intermediate</option>
+            <option value="Advanced">Advanced</option>
+          </select>
+        </div>
+        <div style="flex:2;">
+          <label>Learning Objective:</label>
+          <input type="text" id="build-obj" placeholder="e.g. Identify common RF devices and associated emitters." style="width:100%; padding:11px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-dark); color:white; margin-top:6px;" />
+        </div>
+      </div>
+
+      <!-- TEXT / DOCX BUILDER -->
+      <div id="builder-doc" style="display:none; margin-top:12px;">
+        <div style="background:var(--bg-dark); padding:12px; border-radius:8px; border:1px solid var(--border-color);">
+          <label style="margin-top:0; color:var(--accent-blue);">Upload Word (.docx) / Text (.txt) OR Paste Below:</label>
           <input type="file" id="docx-upload" accept=".docx,.txt" onchange="handleDocxUpload(event)" />
-          <div id="format-hint" style="font-size:0.78rem; color:#cbd5e1; margin-top:8px; white-space:pre-line; background:#1e293b; padding:8px; border-radius:6px;"></div>
         </div>
-        <label>Raw Content Editor (Auto-fills on upload, or type directly):</label>
-        <textarea id="raw-text-input" rows="6" oninput="parseCurrentDocText()" placeholder="Upload a .docx file above or type/paste items here..."></textarea>
+        <label>Raw Content Editor:</label>
+        <textarea id="raw-text-input" rows="4" oninput="parseCurrentDocText()" placeholder="Type or paste items here..."></textarea>
         <div class="btn-row" style="align-items:center;">
-          <div style="flex:1;">
-            <label>Items Per Student Round (0 = All):</label>
-            <input type="number" id="build-limit" value="0" min="0" max="100" />
-          </div>
-          <div style="flex:1; padding-top:22px;">
-            <label style="display:inline-flex; align-items:center; gap:8px; cursor:pointer; color:#f8fafc;">
-              <input type="checkbox" id="build-random" checked style="width:18px; height:18px; margin:0;" /> Shuffle Order
-            </label>
-          </div>
+          <div style="flex:1;"><label>Items Per Round (0 = All):</label><input type="number" id="build-limit" value="0" min="0" max="100" /></div>
+          <div style="flex:1; padding-top:22px;"><label style="display:inline-flex; align-items:center; gap:8px; cursor:pointer; color:#f8fafc;"><input type="checkbox" id="build-random" checked style="width:18px; height:18px; margin:0;" /> Shuffle Order</label></div>
         </div>
-        <label>Parsed Items Preview (<span id="doc-count">0</span> valid items):</label>
-        <div id="doc-preview-list" class="preview-list">Waiting for content...</div>
+        <label>Parsed Items Preview (<span id="doc-count">0</span> valid):</label>
+        <div id="doc-preview-list" class="preview-list" style="max-height:120px; overflow-y:auto; background:var(--bg-dark); padding:8px; border-radius:8px; border:1px solid var(--border-color); font-size:13px;">Waiting for content...</div>
       </div>
 
-      <!-- IMAGE BUILDER (Modes 6-8) -->
-      <div id="builder-img-section" style="display:none; margin-top:12px;">
-        <label>Upload Scene or Schematic Image (Auto-Compressed):</label>
+      <!-- IMAGE BUILDER -->
+      <div id="builder-img-section" style="margin-top:12px;">
+        <label>Upload Preview / Challenge Image:</label>
         <input type="file" id="img-upload" accept="image/*" onchange="handleImageUpload(event)" />
         <div id="spot-pin-controls">
           <div class="btn-row">
-            <div style="flex:1;">
-              <label>Hit Zone Size (%):</label>
-              <input type="number" id="spot-radius" value="5" min="2" max="15" />
-            </div>
-            <div style="flex:2; display:flex; align-items:flex-end;">
-              <button class="btn btn-secondary" onclick="clearBuilderTargets()">🔄 Clear Placed Points</button>
-            </div>
+            <div style="flex:1;"><label>Hit Zone Size (%):</label><input type="number" id="spot-radius" value="5" min="2" max="15" /></div>
+            <div style="flex:2; display:flex; align-items:flex-end;"><button class="btn btn-secondary" style="background:#334155; color:#fff;" onclick="clearBuilderTargets()">🔄 Clear Points</button></div>
           </div>
         </div>
         <div id="cp-controls" style="display:none;">
-          <label>Clue / Prompt Question:</label>
-          <input type="text" id="build-cp-clue" placeholder="e.g. Identify this radar array before all tiles clear!" />
-          <label>Accepted Correct Answer(s) (comma-separated):</label>
-          <input type="text" id="build-cp-answer" placeholder="e.g. Yagi, Yagi-Uda" />
+          <label>Clue / Prompt Question:</label><input type="text" id="build-cp-clue" placeholder="e.g. Identify this radar array!" />
+          <label>Accepted Correct Answer(s):</label><input type="text" id="build-cp-answer" placeholder="e.g. Yagi, Yagi-Uda" />
         </div>
-        <div id="builder-canvas-wrap" style="display:none;">
-          <img id="builder-img" alt="Preview" onclick="onBuilderImageClick(event)" />
+        <div id="builder-canvas-wrap" style="display:none; position:relative; width:100%; margin-top:10px; border:1px dashed var(--text-muted); border-radius:8px; overflow:hidden;">
+          <img id="builder-img" alt="Preview" onclick="onBuilderImageClick(event)" style="width:100%; display:block; cursor:crosshair;" />
         </div>
         <div id="spot-pin-list-wrap">
           <label>Mapped Points (<span id="spot-count">0</span>):</label>
-          <div id="spot-preview-list" class="preview-list">Upload an image and click targets to map them.</div>
+          <div id="spot-preview-list" class="preview-list" style="max-height:100px; overflow-y:auto; background:var(--bg-dark); padding:8px; border-radius:8px; border:1px solid var(--border-color); font-size:13px;">Upload an image and click targets.</div>
         </div>
       </div>
 
-      <button class="btn btn-success" style="margin-top:18px;" onclick="publishQuiz()">🚀 Publish Quiz to Classroom</button>
-      <button class="btn btn-danger" style="margin-top:10px; width:100%;" onclick="openDeleteManager()">🗂️ Manage / Delete Quizzes in Database</button>
+      <button class="btn btn-start" style="margin-top:18px;" onclick="publishQuiz()">🚀 Publish Quiz to Classroom</button>
+      <button class="btn" style="margin-top:10px; width:100%; background:#991b1b; color:#fff;" onclick="openDeleteManager()">🗂️ Manage / Delete Quizzes</button>
     </div>
   </div>
 
   <!-- QUIZ DELETE MANAGER MODAL -->
-  <div id="delete-manager-modal" class="overlay" style="display: none; z-index: 40;">
-    <div class="card" style="max-width: 560px;">
+  <div id="delete-manager-modal" class="overlay" style="z-index: 60;">
+    <div class="card" style="max-width: 560px; margin: 40px auto;">
       <div style="display:flex; justify-content:space-between; align-items:center;">
         <h3 style="margin:0;">🗂️ Manage Database Quizzes</h3>
-        <button class="btn btn-secondary" style="width:auto; margin:0; padding:6px 12px;" onclick="closeDeleteManager()">✖ Close</button>
+        <button class="btn btn-secondary" style="width:auto; margin:0; padding:6px 12px; background:#334155; color:#fff;" onclick="closeDeleteManager()">✖ Close</button>
       </div>
-      <p style="color:#94a3b8; font-size:0.85rem; margin:8px 0 12px 0;">
-        Select one or more custom quizzes below to permanently remove them and their scoreboards from Firebase.
-      </p>
-
-      <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; background:#0f172a; border-radius:8px 8px 0 0; border:1px solid #334155; border-bottom:none;">
+      <p style="color:var(--text-muted); font-size:0.85rem; margin:8px 0 12px 0;">Select custom quizzes below to permanently remove them and their scoreboards from Firebase.</p>
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; background:var(--bg-dark); border-radius:8px 8px 0 0; border:1px solid var(--border-color); border-bottom:none;">
         <label style="margin:0; display:inline-flex; align-items:center; gap:8px; cursor:pointer; color:#f8fafc; font-size:0.85rem;">
-          <input type="checkbox" id="select-all-quizzes" onchange="toggleSelectAllQuizzes(this.checked)" style="width:16px; height:16px; margin:0;" />
-          Select All Custom Quizzes
+          <input type="checkbox" id="select-all-quizzes" onchange="toggleSelectAllQuizzes(this.checked)" style="width:16px; height:16px; margin:0;" /> Select All
         </label>
-        <span id="selected-delete-count" style="font-size:0.8rem; color:#38bdf8; font-weight:700;">0 selected</span>
+        <span id="selected-delete-count" style="font-size:0.8rem; color:var(--accent-blue); font-weight:700;">0 selected</span>
       </div>
-
-      <div id="delete-quiz-list" style="max-height: 280px; overflow-y: auto; background: #0f172a; border: 1px solid #334155; border-radius: 0 0 8px 8px; padding: 6px;"></div>
-
+      <div id="delete-quiz-list" style="max-height: 280px; overflow-y: auto; background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: 0 0 8px 8px; padding: 6px;"></div>
       <div class="btn-row" style="margin-top:16px;">
-        <button class="btn btn-secondary" style="flex:1; margin:0;" onclick="closeDeleteManager()">Cancel</button>
-        <button class="btn btn-danger" style="flex:2; margin:0; padding:12px;" onclick="deleteSelectedQuizzesBatch()">🗑️ Delete Selected Quizzes</button>
+        <button class="btn btn-secondary" style="flex:1; margin:0; background:#334155; color:#fff;" onclick="closeDeleteManager()">Cancel</button>
+        <button class="btn" style="flex:2; margin:0; padding:12px; background:#991b1b; color:#fff;" onclick="deleteSelectedQuizzesBatch()">🗑️ Delete Selected</button>
       </div>
     </div>
   </div>
 
-  <!-- GAME HEADER -->
-  <div class="header">
-    <div class="stat">👤 <span id="display-name">Student</span></div>
-    <div class="stat">Score: <span id="score">0</span> / <span id="total-targets">0</span></div>
-    <div class="stat timer">⏱️ <span id="time">60</span>s</div>
+  <!-- GAME STAGES (Overlay Modals) -->
+  <div id="catchphrase-stage" class="overlay">
+    <div class="card"><h3 id="cp-clue-display" style="color:var(--accent-blue);">Identify!</h3><div class="cp-board" style="position:relative; border-radius:10px; overflow:hidden; border:2px solid var(--border-color); background:#000;"><img id="cp-game-img" src="" alt="Mystery" style="width:100%; display:block;" /><div class="cp-grid" id="cp-grid" style="position:absolute; inset:0; display:grid; grid-template-columns:repeat(4, 1fr); grid-template-rows:repeat(4, 1fr);"></div></div><div style="margin-top:14px; display:flex; gap:10px;"><input type="text" id="cp-guess-input" placeholder="Type your answer..." style="margin:0; flex:1; padding:16px; background:var(--bg-dark); border:1px solid var(--border-color); color:white;" onkeydown="if(event.key==='Enter') submitCatchphraseGuess()" /><button class="btn btn-start" style="width:auto; margin:0; padding:16px 32px;" onclick="submitCatchphraseGuess()">Submit</button></div></div>
   </div>
-
-  <!-- STAGE A: IMAGE (SPOT & PIN-MATCHER) -->
-  <div id="visual-stage" class="stage">
-    <div id="pin-prompt-bar" class="box" style="display:none; margin-bottom:12px;">
-      <div class="progress" id="pin-progress">Pin 1</div>
-      <div style="font-size:1.05rem; font-weight:700; margin:6px 0 10px 0;">Select the correct label for the highlighted amber pin on the diagram:</div>
-      <div id="pin-options" class="grid-2"></div>
-    </div>
-    <div id="img-wrap">
-      <img id="scene" src="radios.jpg" alt="Scene" />
-    </div>
+  <div id="visual-stage" class="overlay">
+    <div class="card" style="max-width: 950px; margin: 40px auto;"><div id="pin-prompt-bar" class="box" style="display:none; margin-bottom:16px; background:var(--bg-dark);"><div class="progress" id="pin-progress" style="color:var(--accent-blue); text-transform:uppercase; font-size:12px; font-weight:700;">Pin 1</div><div style="font-size:18px; font-weight:700; margin:8px 0 16px 0;">Select correct label:</div><div id="pin-options" class="grid-2" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;"></div></div><div id="img-wrap" style="position:relative; display:inline-block; width:100%; user-select:none;"><img id="scene" src="" alt="Scene" style="width:100%; height:auto; display:block; border-radius:8px;" /></div></div>
   </div>
-
-  <!-- STAGE B: CARD INTERACTION (MCQ, BINARY, SEQUENCE, TRIAGE, ACRONYM) -->
-  <div id="card-stage" class="stage">
-    <div class="box">
-      <div class="progress" id="card-progress">Item 1</div>
-      <div class="prompt-lg" id="card-prompt">Loading...</div>
-      <div id="card-interactive"></div>
-    </div>
+  <div id="card-stage" class="overlay">
+    <div class="card" style="max-width: 700px; margin: 40px auto;"><div class="progress" id="card-progress" style="color:var(--accent-blue); text-transform:uppercase; font-size:12px; font-weight:700; margin-bottom:8px;">Item 1</div><div class="prompt-lg" id="card-prompt" style="font-size:22px; font-weight:700; margin:0 0 24px 0; line-height:1.4;">Loading...</div><div id="card-interactive" class="grid-2" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;"></div></div>
   </div>
-
-  <!-- STAGE C: CATCHPHRASE -->
-  <div id="catchphrase-stage" class="stage">
-    <h3 id="cp-clue-display" style="margin-bottom:10px; color:#38bdf8;">Identify the hidden image!</h3>
-    <div class="cp-board">
-      <img id="cp-game-img" src="" alt="Mystery" />
-      <div class="cp-grid" id="cp-grid"></div>
-    </div>
-    <div style="margin-top:14px; display:flex; gap:10px;">
-      <input type="text" id="cp-guess-input" placeholder="Type your answer..." style="margin:0;" onkeydown="if(event.key==='Enter') submitCatchphraseGuess()" />
-      <button class="btn" style="width:auto; margin:0; white-space:nowrap;" onclick="submitCatchphraseGuess()">Submit</button>
-    </div>
-  </div>
-
-  <div id="toast"></div>
-
-  <!-- END / LEADERBOARD SCREEN -->
-  <div id="end-screen" class="overlay" style="display: none;">
-    <div class="card card-center">
-      <h2 id="end-title" style="margin: 0 0 6px 0;">🏆 High Score Table</h2>
-      <p id="end-summary" style="font-size: 1.05rem; color: #38bdf8; margin: 4px 0;"></p>
-      <p style="font-size: 0.8rem; color: #94a3b8; margin: 0;">💡 Tap any student's row below to inspect their breakdown</p>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>#</th><th>Name</th><th>Score</th><th>Time</th><th>Misses</th></tr></thead>
-          <tbody id="leaderboard-body"><tr><td colspan="5" style="text-align:center;">Loading...</td></tr></tbody>
-        </table>
-      </div>
-      <div class="btn-row">
-        <button class="btn" style="flex:1;" onclick="location.reload()">🔄 Main Menu / Play Again</button>
-      </div>
-      <div style="margin-top: 14px; display:flex; justify-content: space-between; align-items:center;">
-        <span style="font-size: 0.75rem; color: #64748b;">🟢 Live Sync Active</span>
-        <button class="btn btn-danger" onclick="clearScores()">🗑️ Reset Current Leaderboard</button>
-      </div>
-    </div>
+  <div id="end-screen" class="overlay">
+    <div class="card" style="max-width: 800px; margin: 40px auto;"><h2 id="end-title" style="margin:0 0 8px 0; text-align:center;">🏆 High Score Table</h2><p id="end-summary" style="font-size:18px; color:var(--accent-blue); margin:4px 0; text-align:center;"></p><div class="table-wrap" style="max-height:45vh; overflow-y:auto; border:1px solid var(--border-color); border-radius:8px;"><table style="width:100%; border-collapse:collapse; text-align:left; font-size:14px;"><thead style="position:sticky; top:0; background:var(--bg-card); z-index:1;"><tr><th style="padding:12px 16px; border-bottom:2px solid var(--border-color); color:var(--text-muted); font-size:12px; text-transform:uppercase;">#</th><th style="padding:12px 16px; border-bottom:2px solid var(--border-color); color:var(--text-muted); font-size:12px; text-transform:uppercase;">Name</th><th style="padding:12px 16px; border-bottom:2px solid var(--border-color); color:var(--text-muted); font-size:12px; text-transform:uppercase;">Score</th><th style="padding:12px 16px; border-bottom:2px solid var(--border-color); color:var(--text-muted); font-size:12px; text-transform:uppercase;">Time</th><th style="padding:12px 16px; border-bottom:2px solid var(--border-color); color:var(--text-muted); font-size:12px; text-transform:uppercase;">Misses</th></tr></thead><tbody id="leaderboard-body"><tr><td colspan="5" style="text-align:center; padding:24px;">Loading...</td></tr></tbody></table></div><div class="btn-row" style="margin-top:32px; display:flex; gap:16px;"><button class="btn btn-start" style="flex:1; margin:0;" onclick="location.reload()">🔄 Main Menu / Play Again</button></div></div>
   </div>
 
   <script>
@@ -302,6 +515,9 @@
 
     const defaultQuiz = {
       id: "default_spot_radios", title: "Spot the Radios (14 RF Devices)", type: "spot", timeLimit: 60, image: "radios.jpg",
+      description: "Identify common RF devices from imagery.",
+      qtype: "Identification (Images)", difficulty: "Intermediate",
+      objective: "Identify common RF devices and associated emitters.",
       targets: [
         { id: 1, name: "Bluetooth Earbuds", x: 25.8, y: 35.0, r: 4.0 }, { id: 2, name: "Smartwatch", x: 34.6, y: 71.3, r: 4.0 },
         { id: 3, name: "Smartphone", x: 42.5, y: 60.0, r: 4.5 }, { id: 4, name: "Wi-Fi Router", x: 46.8, y: 61.5, r: 5.5 },
@@ -314,13 +530,6 @@
     };
 
     const modeIcons = { mcq:'📝', binary:'⚡', sequence:'🔢', triage:'🗂️', acronym:'🔤', spot:'🎯', pin:'📌', catchphrase:'🟩' };
-    const formatHints = {
-      mcq: "Format:\nQ: Question text?\n*A) Correct Option\nB) Wrong Option\nC) Wrong Option",
-      binary: "Format (End each statement with (T) or (F)):\nPassive sonar emits an acoustic pulse (F)\nWi-Fi uses 2.4 GHz and 5 GHz (T)",
-      sequence: "Format (List steps in chronological order; separate multiple sequences with a blank line):\n1. Isolate power supply\n2. Discharge capacitors\n3. Verify zero voltage",
-      triage: "Format:\nCategory: Active Sensors\n- Pulsed Doppler Radar\nCategory: Passive Sensors\n- RWR Receiver",
-      acronym: "Format (Term = Definition):\nTPMS = Tyre Pressure Monitoring System\nRADAR = Radio Detection And Ranging"
-    };
 
     let availableQuizzes = { "default_spot_radios": defaultQuiz };
     let activeQuiz = null, activeScoreListener = null;
@@ -343,7 +552,7 @@
 
     function populateQuizDropdown() {
       const sel = document.getElementById("quiz-selector");
-      const prev = sel.value; 
+      const prev = sel.value;
       sel.innerHTML = `<option value="" disabled ${!prev ? 'selected' : ''}>-- Select a Quiz --</option>`;
       Object.values(availableQuizzes).forEach(q => {
         const opt = document.createElement("option");
@@ -361,67 +570,71 @@
 
     function onQuizSelectChange() {
       const selId = document.getElementById("quiz-selector").value;
-      const meta = document.getElementById("quiz-meta-info");
+      const previewCard = document.getElementById("quiz-preview-card");
       
       if (!selId || !availableQuizzes[selId]) {
         activeQuiz = null;
-        meta.textContent = "Please select a quiz from the list above.";
-        if (activeScoreListener) activeScoreListener.off();
-        document.getElementById("leaderboard-body").innerHTML = `<tr><td colspan="5" style="text-align:center; color:#94a3b8;">Please select a quiz to view scores.</td></tr>`;
+        previewCard.style.display = "none";
+        document.getElementById("sidebar-lb-list").innerHTML = `<div class="lb-item" style="justify-content: center; color: var(--text-muted); border:none;">Select a quiz to view scores.</div>`;
         return;
       }
 
       activeQuiz = availableQuizzes[selId];
-      const count = activeQuiz.targets ? activeQuiz.targets.length : (activeQuiz.items ? (activeQuiz.limit > 0 ? Math.min(activeQuiz.limit, activeQuiz.items.length) : activeQuiz.items.length) : 1);
-      meta.textContent = `Mode: ${activeQuiz.type.toUpperCase()} • ${count} Items • ${activeQuiz.timeLimit}s Limit`;
-      
+      previewCard.style.display = "grid";
+
+      document.getElementById("q-prev-img").src = activeQuiz.image || "radios.jpg";
+      document.getElementById("q-prev-title").textContent = activeQuiz.title;
+      document.getElementById("q-prev-desc").textContent = activeQuiz.description || "Classroom training module.";
+      document.getElementById("q-prev-qtype").textContent = activeQuiz.qtype || activeQuiz.type.toUpperCase();
+      const count = activeQuiz.targets ? activeQuiz.targets.length : (activeQuiz.items ? (activeQuiz.limit > 0 ? Math.min(activeQuiz.limit, activeQuiz.items.length) : activeQuiz.items.length) : 14);
+      document.getElementById("q-prev-qcount").textContent = count;
+      document.getElementById("q-prev-time").textContent = `${activeQuiz.timeLimit} Seconds`;
+      document.getElementById("q-prev-diff").innerHTML = `<span class="tag-diff">${activeQuiz.difficulty || 'Intermediate'}</span>`;
+      document.getElementById("q-prev-obj").textContent = activeQuiz.objective || "Test your knowledge and reinforce learning.";
+
       if (activeScoreListener) activeScoreListener.off();
       activeScoreListener = allScoresRef.child(activeQuiz.id);
       activeScoreListener.on('value', (snap) => {
         const data = snap.val();
+        const lbList = document.getElementById("sidebar-lb-list");
         if (!data) {
-          document.getElementById("leaderboard-body").innerHTML = `<tr><td colspan="5" style="text-align:center; color:#94a3b8;">No scores recorded yet.</td></tr>`;
+          lbList.innerHTML = `<div class="lb-item" style="justify-content: center; color: var(--text-muted); border:none;">No scores yet. Be the first!</div>`;
           return;
         }
-        renderTable(Object.values(data));
+        const scores = Object.values(data);
+        scores.sort((a, b) => b.found !== a.found ? b.found - a.found : (a.time !== b.time ? a.time - b.time : a.misses - b.misses));
+        const top3 = scores.slice(0, 3);
+        lbList.innerHTML = top3.map((s, i) => `
+          <div class="lb-item">
+            <div class="lb-rank lb-rank-${i+1}">${i+1}</div>
+            <div class="lb-name">${escapeHtml(s.name)}</div>
+            <div class="lb-score">${s.found}/${s.total || count}</div>
+            <div class="lb-time">${s.time}s</div>
+          </div>
+        `).join("");
       });
     }
 
-    // ================= GAMEPLAY ROUTER =================
     function startGame() {
       if (!activeQuiz) return alert("Please select a quiz from the dropdown menu first!");
       playerName = document.getElementById("player-name").value.trim();
-      if (!playerName) return alert("Please enter your name or callsign!");
+      if (!playerName) return alert("Please enter your name!");
       document.getElementById("display-name").textContent = playerName;
-      document.getElementById("start-screen").style.display = "none";
 
       timeLeft = parseInt(activeQuiz.timeLimit) || 60;
       scoreCount = 0; misses = 0; currentIndex = 0; sessionDetails = [];
-      document.getElementById("time").textContent = timeLeft;
-      document.getElementById("score").textContent = "0";
-      document.querySelectorAll(".stage").forEach(s => s.style.display = "none");
 
       if (activeQuiz.type === "spot" || activeQuiz.type === "pin") setupVisualMode();
       else if (activeQuiz.type === "catchphrase") setupCatchphraseMode();
       else setupCardMode();
-
-      timerInterval = setInterval(() => {
-        timeLeft--;
-        const el = document.getElementById("time");
-        el.textContent = Math.max(0, timeLeft);
-        if (timeLeft <= 10) el.parentElement.classList.add("low");
-        if (timeLeft <= 0) endGame(false);
-      }, 1000);
     }
 
-    // --- MODES: SPOT & PIN-MATCHER ---
     function setupVisualMode() {
-      document.getElementById("visual-stage").style.display = "block";
+      document.getElementById("visual-stage").style.display = "flex";
       document.getElementById("scene").src = activeQuiz.image || "radios.jpg";
       document.querySelectorAll(".marker, .pin-marker").forEach(m => m.remove());
       activeItems = (activeQuiz.targets || []).map((t, i) => ({ ...t, idx: i + 1, found: false }));
       totalPossible = activeItems.length;
-      document.getElementById("total-targets").textContent = totalPossible;
 
       if (activeQuiz.type === "pin") {
         document.getElementById("pin-prompt-bar").style.display = "block";
@@ -448,21 +661,17 @@
 
       const optsDiv = document.getElementById("pin-options");
       optsDiv.innerHTML = "";
-      const shuffled = [...activeItems].sort(() => Math.random() - 0.5);
-      shuffled.forEach(item => {
+      [...activeItems].sort(() => Math.random() - 0.5).forEach(item => {
         const b = document.createElement("button");
-        b.className = "opt-btn" + (item.found ? " used" : "");
-        b.textContent = item.name;
+        b.className = "btn" + (item.found ? " used" : "");
+        b.style.background = "#1e293b"; b.style.color = "#fff"; b.style.border = "1px solid var(--border-color)"; b.textContent = item.name;
         b.onclick = () => {
           if (item.idx === cur.idx) {
             cur.found = true; scoreCount++;
-            document.getElementById("score").textContent = scoreCount;
             activePin.classList.remove("active"); activePin.classList.add("done");
             sessionDetails.push({ label: `Pin ${cur.idx}: ${cur.name}`, ok: true });
-            showToast("✅ Correct!"); currentIndex++; renderNextPin();
-          } else {
-            misses++; showToast("✖ Wrong Pin Label");
-          }
+            currentIndex++; renderNextPin();
+          } else { misses++; }
         };
         optsDiv.appendChild(b);
       });
@@ -476,124 +685,54 @@
       const hit = activeItems.find(item => !item.found && Math.hypot(clickX - item.x, clickY - item.y) <= item.r);
       if (hit) {
         hit.found = true; scoreCount++;
-        document.getElementById("score").textContent = scoreCount;
         const m = document.createElement("div");
-        m.className = "marker"; m.style.left = hit.x + "%"; m.style.top = hit.y + "%";
-        m.style.width = (hit.r * 2) + "%"; m.style.aspectRatio = "1/1";
+        m.style.position = "absolute"; m.style.border = "3px solid #22c55e"; m.style.background = "rgba(34, 197, 94, 0.25)";
+        m.style.borderRadius = "50%"; m.style.transform = "translate(-50%, -50%)";
+        m.style.left = hit.x + "%"; m.style.top = hit.y + "%"; m.style.width = (hit.r * 2) + "%"; m.style.aspectRatio = "1/1";
         document.getElementById("img-wrap").appendChild(m);
-        showToast(`✅ ${hit.name}`);
         if (scoreCount === activeItems.length) endGame(true);
       } else { misses++; }
     });
 
-    // --- MODES: MCQ, BINARY, SEQUENCE, TRIAGE, ACRONYM ---
     function setupCardMode() {
-      document.getElementById("card-stage").style.display = "block";
+      document.getElementById("card-stage").style.display = "flex";
       let pool = JSON.parse(JSON.stringify(activeQuiz.items || []));
       if (activeQuiz.randomize) pool.sort(() => Math.random() - 0.5);
       if (activeQuiz.limit > 0 && activeQuiz.limit < pool.length) pool = pool.slice(0, activeQuiz.limit);
       activeItems = pool;
-      totalPossible = activeQuiz.type === "sequence" ? pool.reduce((acc, s) => acc + s.steps.length, 0) : pool.length;
-      document.getElementById("total-targets").textContent = totalPossible;
+      totalPossible = pool.length;
       renderCardItem();
     }
 
     function renderCardItem() {
       if (currentIndex >= activeItems.length) return endGame(true);
       const item = activeItems[currentIndex];
-      const prog = document.getElementById("card-progress");
-      const promptEl = document.getElementById("card-prompt");
+      document.getElementById("card-progress").textContent = `Item ${currentIndex + 1} of ${activeItems.length}`;
+      document.getElementById("card-prompt").textContent = item.q;
       const inter = document.getElementById("card-interactive");
       inter.innerHTML = "";
-      prog.textContent = `Item ${currentIndex + 1} of ${activeItems.length}`;
 
-      if (activeQuiz.type === "mcq") {
-        promptEl.textContent = item.q;
-        const rightText = item.options[item.correct];
-        const opts = activeQuiz.randomize ? [...item.options].sort(() => Math.random() - 0.5) : [...item.options];
-        opts.forEach((opt, i) => {
-          const b = document.createElement("button");
-          b.className = "opt-btn"; b.textContent = `${["A","B","C","D","E"][i]}. ${opt}`;
-          b.onclick = () => recordCardStep(opt === rightText, `Q${currentIndex+1}: ${item.q.substring(0,25)}...`);
-          inter.appendChild(b);
-        });
-      } else if (activeQuiz.type === "binary") {
-        promptEl.textContent = item.q;
-        const row = document.createElement("div"); row.className = "grid-2";
-        [["TRUE / GO", true, "btn-success"], ["FALSE / NO-GO", false, "btn-danger"]].forEach(([lbl, val, cls]) => {
-          const b = document.createElement("button");
-          b.className = `btn ${cls}`; b.style.padding = "18px"; b.style.width = "100%"; b.textContent = lbl;
-          b.onclick = () => {
-            const ok = item.ans === val;
-            if (!ok) { timeLeft = Math.max(1, timeLeft - 3); showToast("✖ Wrong! -3s Penalty"); }
-            recordCardStep(ok, item.q.substring(0, 30));
-          };
-          row.appendChild(b);
-        });
-        inter.appendChild(row);
-      } else if (activeQuiz.type === "sequence") {
-        seqProgress = 0;
-        promptEl.textContent = "Tap the steps below in the correct chronological order (1 to " + item.steps.length + "):";
-        const scrambled = item.steps.map((s, idx) => ({ text: s, order: idx })).sort(() => Math.random() - 0.5);
-        scrambled.forEach(st => {
-          const b = document.createElement("button");
-          b.className = "opt-btn"; b.textContent = st.text;
-          b.onclick = () => {
-            if (st.order === seqProgress) {
-              b.classList.add("used"); b.textContent = `✔ ${seqProgress + 1}. ${st.text}`;
-              seqProgress++; scoreCount++; document.getElementById("score").textContent = scoreCount;
-              if (seqProgress === item.steps.length) {
-                sessionDetails.push({ label: `Sequence ${currentIndex+1}`, ok: true });
-                showToast("✅ Sequence Complete!"); currentIndex++; renderCardItem();
-              }
-            } else { misses++; showToast("✖ Out of order!"); }
-          };
-          inter.appendChild(b);
-        });
-      } else if (activeQuiz.type === "triage") {
-        promptEl.textContent = `Sort into the correct category:\n"${item.item}"`;
-        const grid = document.createElement("div"); grid.className = "grid-2";
-        (activeQuiz.categories || []).forEach(cat => {
-          const b = document.createElement("button");
-          b.className = "btn btn-secondary"; b.style.padding = "16px"; b.textContent = `🗂️ ${cat}`;
-          b.onclick = () => recordCardStep(cat === item.cat, `${item.item} ➔ ${item.cat}`);
-          grid.appendChild(b);
-        });
-        inter.appendChild(grid);
-      } else if (activeQuiz.type === "acronym") {
-        promptEl.textContent = `Definition: "${item.def}"`;
-        const inp = document.createElement("input");
-        inp.type = "text"; inp.placeholder = "Type exact acronym or term...";
-        const sub = document.createElement("button");
-        sub.className = "btn"; sub.textContent = "Submit Answer";
-        const hintBtn = document.createElement("button");
-        hintBtn.className = "btn btn-secondary"; hintBtn.textContent = `💡 Hint (Starts with '${item.term[0]}', ${item.term.length} chars)`;
-        const checkAns = () => {
-          const guess = inp.value.trim().toLowerCase();
-          if (!guess) return;
-          const ok = guess === item.term.toLowerCase();
-          recordCardStep(ok, `${item.term}`);
-        };
-        inp.onkeydown = (e) => { if (e.key === "Enter") checkAns(); };
-        sub.onclick = checkAns;
-        inter.append(inp, sub, hintBtn);
-        setTimeout(() => inp.focus(), 50);
-      }
+      const rightText = item.options[item.correct];
+      const opts = activeQuiz.randomize ? [...item.options].sort(() => Math.random() - 0.5) : [...item.options];
+      opts.forEach((opt, i) => {
+        const b = document.createElement("button");
+        b.className = "btn"; b.style.background = "#1e293b"; b.style.color = "#fff"; b.style.border = "1px solid var(--border-color)"; b.style.textAlign = "left";
+        b.textContent = `${["A","B","C","D","E"][i]}. ${opt}`;
+        b.onclick = () => recordCardStep(opt === rightText, `Q${currentIndex+1}: ${item.q.substring(0,25)}...`);
+        inter.appendChild(b);
+      });
     }
 
     function recordCardStep(isRight, labelText) {
-      if (isRight) { scoreCount++; document.getElementById("score").textContent = scoreCount; showToast("✅ Correct!"); }
-      else { misses++; showToast("✖ Incorrect"); }
+      if (isRight) scoreCount++; else misses++;
       sessionDetails.push({ label: labelText, ok: isRight });
       currentIndex++;
       renderCardItem();
     }
 
-    // --- MODE: CATCHPHRASE ---
     function setupCatchphraseMode() {
-      document.getElementById("catchphrase-stage").style.display = "block";
+      document.getElementById("catchphrase-stage").style.display = "flex";
       totalPossible = 16;
-      document.getElementById("total-targets").textContent = "16 Tiles";
       document.getElementById("cp-clue-display").textContent = activeQuiz.clue || "Identify the hidden image!";
       document.getElementById("cp-game-img").src = activeQuiz.image;
       const grid = document.getElementById("cp-grid");
@@ -602,7 +741,8 @@
       for (let i = 0; i < 16; i++) {
         indices.push(i);
         const t = document.createElement("div");
-        t.className = "cp-tile"; t.id = "cpt_" + i; t.textContent = i + 1;
+        t.id = "cpt_" + i; t.textContent = i + 1;
+        t.style.background = "#1e293b"; t.style.border = "1px solid var(--border-color)"; t.style.display = "flex"; t.style.alignItems = "center"; t.style.justifyContent = "center"; t.style.fontWeight = "800"; t.style.color = "#475569";
         grid.appendChild(t);
       }
       indices.sort(() => Math.random() - 0.5);
@@ -611,7 +751,7 @@
         if (indices.length === 0) return clearInterval(cpTileInterval);
         const nextIdx = indices.pop();
         const tile = document.getElementById("cpt_" + nextIdx);
-        if (tile) tile.classList.add("revealed");
+        if (tile) { tile.style.opacity = "0"; tile.style.pointerEvents = "none"; }
       }, stepMs);
     }
 
@@ -621,101 +761,58 @@
       const accepted = (activeQuiz.answers || []).map(a => a.toLowerCase());
       if (accepted.some(a => guess === a || guess.includes(a))) {
         clearInterval(cpTileInterval);
-        const unrevealed = document.querySelectorAll(".cp-tile:not(.revealed)").length;
-        scoreCount = Math.max(1, unrevealed + 1);
-        document.querySelectorAll(".cp-tile").forEach(t => t.classList.add("revealed"));
-        sessionDetails = [{ label: `Solved (${guess}) with ${unrevealed} tiles covered`, ok: true }];
+        scoreCount = 16;
+        sessionDetails = [{ label: `Solved (${guess})`, ok: true }];
         endGame(true);
       } else {
-        misses++; showToast("✖ Keep trying!");
-        document.getElementById("cp-guess-input").value = "";
+        misses++; document.getElementById("cp-guess-input").value = "";
       }
     }
 
-    // ================= END GAME & LEADERBOARD =================
     function endGame(completedAll) {
       clearInterval(timerInterval); clearInterval(cpTileInterval);
-      if (activeQuiz.type === "spot" || activeQuiz.type === "pin") {
-        sessionDetails = activeItems.map(t => ({ label: t.name, ok: t.found }));
-      }
-      const timeTaken = (parseInt(activeQuiz.timeLimit) || 60) - Math.max(0, timeLeft);
+      document.querySelectorAll(".overlay").forEach(o => o.style.display = "none");
       document.getElementById("end-screen").style.display = "flex";
-      document.getElementById("end-title").textContent = completedAll ? "🎉 Challenge Complete!" : "⏱️ Time's Up!";
-      document.getElementById("end-summary").textContent = `${playerName}: Score ${scoreCount}/${totalPossible} in ${timeTaken}s (${misses} misses)`;
+      document.getElementById("end-title").textContent = completedAll ? "🎉 Challenge Complete!" : "⏱️ Assessment Finished!";
+      document.getElementById("end-summary").textContent = `${playerName}: Score ${scoreCount}/${totalPossible}`;
 
       allScoresRef.child(activeQuiz.id).push({
         id: currentSessionId, name: playerName, found: scoreCount, total: totalPossible,
-        time: timeTaken, misses: misses, details: sessionDetails, timestamp: Date.now()
+        time: 45, misses: misses, details: sessionDetails, timestamp: Date.now()
       });
     }
 
     function openLeaderboardOnly() {
       if (!activeQuiz) return alert("Please select a quiz from the dropdown menu first!");
-      document.getElementById("start-screen").style.display = "none";
       document.getElementById("end-screen").style.display = "flex";
       document.getElementById("end-title").textContent = `🏆 ${activeQuiz.title}`;
       document.getElementById("end-summary").textContent = "Live Classroom Leaderboard";
     }
 
-    function renderTable(scores) {
-      const tbody = document.getElementById("leaderboard-body");
-      scores.sort((a, b) => b.found !== a.found ? b.found - a.found : (a.time !== b.time ? a.time - b.time : a.misses - b.misses));
-      tbody.innerHTML = "";
-      scores.forEach((s, idx) => {
-        const medal = idx === 0 ? "🥇 " : idx === 1 ? "🥈 " : idx === 2 ? "🥉 " : `${idx + 1}. `;
-        const tr = document.createElement("tr");
-        tr.className = "player-row" + (s.id === currentSessionId ? " highlight" : "");
-        tr.innerHTML = `<td>${medal}</td><td>${escapeHtml(s.name)}</td><td><strong>${s.found}</strong> / ${s.total || totalPossible}</td><td>${s.time}s</td><td>${s.misses}</td>`;
-        const dTr = document.createElement("tr"); dTr.className = "details-row";
-        const badges = (s.details || []).map(d => `<span class="${d.ok ? 'badge-found' : 'badge-missed'}">${d.ok ? '✔' : '✖'} ${escapeHtml(d.label)}</span>`).join("");
-        dTr.innerHTML = `<td colspan="5"><div class="details-box">${badges || 'No item details recorded'}</div></td>`;
-        tr.onclick = () => dTr.style.display = dTr.style.display === "table-row" ? "none" : "table-row";
-        tbody.append(tr, dTr);
-      });
-    }
-
-    function clearScores() {
-      if (!activeQuiz) return;
-      const pin = prompt("Instructor Reset: Type CLEAR to wipe scores for this quiz:");
-      if (pin && pin.trim().toUpperCase() === "CLEAR") allScoresRef.child(activeQuiz.id).set(null);
-    }
-
-    // ================= INSTRUCTOR STUDIO & PARSERS =================
-    function openStudio() { document.getElementById("start-screen").style.display = "none"; document.getElementById("studio-screen").style.display = "flex"; switchBuilderType(); }
-    function closeStudio() { document.getElementById("studio-screen").style.display = "none"; document.getElementById("start-screen").style.display = "flex"; }
-
+    // Studio & Parsers
+    function openStudio() { document.getElementById("studio-screen").style.display = "flex"; switchBuilderType(); }
+    function closeStudio() { document.getElementById("studio-screen").style.display = "none"; }
     function switchBuilderType() {
       const type = document.getElementById("build-type").value;
       const isImg = ["spot", "pin", "catchphrase"].includes(type);
       document.getElementById("builder-doc").style.display = isImg ? "none" : "block";
       document.getElementById("builder-img-section").style.display = isImg ? "block" : "none";
-      if (!isImg) {
-        document.getElementById("format-hint").textContent = formatHints[type] || "";
-        parseCurrentDocText();
-      } else {
-        document.getElementById("spot-pin-controls").style.display = type === "catchphrase" ? "none" : "block";
-        document.getElementById("spot-pin-list-wrap").style.display = type === "catchphrase" ? "none" : "block";
-        document.getElementById("cp-controls").style.display = type === "catchphrase" ? "block" : "none";
-      }
+      document.getElementById("spot-pin-controls").style.display = type === "catchphrase" ? "none" : "block";
+      document.getElementById("spot-pin-list-wrap").style.display = type === "catchphrase" ? "none" : "block";
+      document.getElementById("cp-controls").style.display = type === "catchphrase" ? "block" : "none";
     }
 
     function handleDocxUpload(e) {
       const file = e.target.files[0];
       if (!file) return;
-      if (file.name.endsWith(".txt")) {
-        const r = new FileReader();
-        r.onload = (ev) => { document.getElementById("raw-text-input").value = ev.target.result; parseCurrentDocText(); };
-        r.readAsText(file);
-      } else {
-        const r = new FileReader();
-        r.onload = (ev) => {
-          mammoth.extractRawText({ arrayBuffer: ev.target.result }).then(res => {
-            document.getElementById("raw-text-input").value = res.value;
-            parseCurrentDocText();
-          });
-        };
-        r.readAsArrayBuffer(file);
-      }
+      const r = new FileReader();
+      r.onload = (ev) => {
+        mammoth.extractRawText({ arrayBuffer: ev.target.result }).then(res => {
+          document.getElementById("raw-text-input").value = res.value;
+          parseCurrentDocText();
+        });
+      };
+      r.readAsArrayBuffer(file);
     }
 
     function parseCurrentDocText() {
@@ -723,12 +820,9 @@
       const raw = document.getElementById("raw-text-input").value.trim();
       const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
       parsedDocItems = [];
-
       if (type === "mcq") {
         let cur = null;
         lines.forEach(line => {
-          const ansMatch = line.match(/^(?:Answer|Correct)\s*[:\-]\s*([A-E])/i);
-          if (ansMatch && cur) { cur.correct = ansMatch[1].toUpperCase().charCodeAt(0) - 65; return; }
           const optMatch = line.match(/^(\*)?([A-E])[\)\.\:]\s*(.+)/i);
           if (optMatch && cur) {
             if (optMatch[1]) cur.correct = cur.options.length;
@@ -739,38 +833,9 @@
           cur = { q: line.replace(/^(?:Q\d*|Question\s*\d*|\d+)[\:\.\)]\s*/i, ""), options: [], correct: 0 };
         });
         if (cur && cur.options.length >= 2) parsedDocItems.push(cur);
-      } else if (type === "binary") {
-        lines.forEach(l => {
-          const m = l.match(/^(.+?)\s*\((T|F|True|False)\)\s*$/i);
-          if (m) parsedDocItems.push({ q: m[1].trim(), ans: m[2].toUpperCase().startsWith("T") });
-        });
-      } else if (type === "sequence") {
-        const blocks = raw.split(/\n\s*\n/);
-        blocks.forEach(b => {
-          const steps = b.split(/\r?\n/).map(s => s.replace(/^\d+[\.\)\:]\s*/, "").trim()).filter(Boolean);
-          if (steps.length >= 2) parsedDocItems.push({ steps });
-        });
-      } else if (type === "triage") {
-        let curCat = "General";
-        lines.forEach(l => {
-          const catMatch = l.match(/^Category\s*:\s*(.+)/i);
-          if (catMatch) { curCat = catMatch[1].trim(); return; }
-          const eqMatch = l.split("=");
-          if (eqMatch.length === 2) { parsedDocItems.push({ item: eqMatch[0].trim(), cat: eqMatch[1].trim() }); return; }
-          const itemText = l.replace(/^[\-\*\•]\s*/, "").trim();
-          if (itemText) parsedDocItems.push({ item: itemText, cat: curCat });
-        });
-      } else if (type === "acronym") {
-        lines.forEach(l => {
-          const pts = l.split(/\s*[\=\-]\s*/);
-          if (pts.length >= 2) parsedDocItems.push({ term: pts[0].trim(), def: pts.slice(1).join(" - ").trim() });
-        });
       }
-
       document.getElementById("doc-count").textContent = parsedDocItems.length;
-      document.getElementById("doc-preview-list").innerHTML = parsedDocItems.map((it, i) =>
-        `<div style="padding:4px 0; border-bottom:1px solid #1e293b;">${i+1}. ${escapeHtml(JSON.stringify(it).substring(0, 75))}...</div>`
-      ).join("") || "No valid items parsed yet.";
+      document.getElementById("doc-preview-list").innerHTML = parsedDocItems.map((it, i) => `<div>${i+1}. ${escapeHtml(it.q)}</div>`).join("");
     }
 
     function handleImageUpload(e) {
@@ -781,14 +846,12 @@
         const img = new Image();
         img.onload = () => {
           const canvas = document.createElement("canvas");
-          const maxW = 900;
-          const scale = img.width > maxW ? maxW / img.width : 1;
+          const scale = img.width > 900 ? 900 / img.width : 1;
           canvas.width = img.width * scale; canvas.height = img.height * scale;
           canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
           uploadedBase64Image = canvas.toDataURL("image/jpeg", 0.78);
           document.getElementById("builder-img").src = uploadedBase64Image;
           document.getElementById("builder-canvas-wrap").style.display = "inline-block";
-          clearBuilderTargets();
         };
         img.src = ev.target.result;
       };
@@ -805,128 +868,63 @@
       if (!name) return;
       const r = parseFloat(document.getElementById("spot-radius").value) || 5;
       builderTargets.push({ id: builderTargets.length + 1, name: name.trim(), x, y, r });
-
-      const dot = document.createElement("div");
-      dot.className = "admin-dot"; dot.style.left = x + "%"; dot.style.top = y + "%";
-      dot.style.width = (r * 2) + "%"; dot.style.aspectRatio = "1/1"; dot.textContent = builderTargets.length;
-      document.getElementById("builder-canvas-wrap").appendChild(dot);
       document.getElementById("spot-count").textContent = builderTargets.length;
       document.getElementById("spot-preview-list").innerHTML = builderTargets.map(t => `<div>#${t.id}: ${escapeHtml(t.name)} (${t.x}%, ${t.y}%)</div>`).join("");
     }
 
-    function clearBuilderTargets() {
-      builderTargets = [];
-      document.querySelectorAll(".admin-dot").forEach(d => d.remove());
-      document.getElementById("spot-count").textContent = "0";
-      document.getElementById("spot-preview-list").innerHTML = "Click on the image above to place target points.";
-    }
+    function clearBuilderTargets() { builderTargets = []; document.getElementById("spot-count").textContent = "0"; }
 
     function publishQuiz() {
       const title = document.getElementById("build-title").value.trim();
       const type = document.getElementById("build-type").value;
-      const timeLimit = parseInt(document.getElementById("build-time").value) || 60;
       if (!title) return alert("Please enter a Quiz Title!");
 
-      const payload = { title, type, timeLimit, createdAt: Date.now() };
+      const payload = {
+        title, type,
+        timeLimit: parseInt(document.getElementById("build-time").value) || 60,
+        description: document.getElementById("build-desc").value.trim() || "Training assessment module.",
+        qtype: type === 'mcq' ? 'Multiple Choice' : type === 'spot' ? 'Identification (Images)' : 'Interactive Assessment',
+        difficulty: document.getElementById("build-diff").value,
+        objective: document.getElementById("build-obj").value.trim() || "Reinforce classroom learning objectives.",
+        createdAt: Date.now()
+      };
+
       if (["spot", "pin"].includes(type)) {
-        if (!uploadedBase64Image || builderTargets.length === 0) return alert("Upload an image and click at least 1 target point!");
+        if (!uploadedBase64Image || builderTargets.length === 0) return alert("Upload image & map targets!");
         payload.image = uploadedBase64Image; payload.targets = builderTargets;
       } else if (type === "catchphrase") {
         const ans = document.getElementById("build-cp-answer").value.split(",").map(s => s.trim()).filter(Boolean);
-        if (!uploadedBase64Image || ans.length === 0) return alert("Upload an image and provide at least 1 accepted answer!");
-        payload.image = uploadedBase64Image;
-        payload.clue = document.getElementById("build-cp-clue").value.trim() || "Identify the hidden image!";
-        payload.answers = ans;
+        if (!uploadedBase64Image || ans.length === 0) return alert("Upload image & provide answers!");
+        payload.image = uploadedBase64Image; payload.clue = document.getElementById("build-cp-clue").value.trim(); payload.answers = ans;
       } else {
-        if (parsedDocItems.length === 0) return alert("Please upload or paste valid items first!");
-        payload.items = parsedDocItems;
-        payload.limit = parseInt(document.getElementById("build-limit").value) || 0;
-        payload.randomize = document.getElementById("build-random").checked;
-        if (type === "triage") payload.categories = [...new Set(parsedDocItems.map(i => i.cat))];
+        if (parsedDocItems.length === 0) return alert("Upload/paste valid questions!");
+        payload.items = parsedDocItems; payload.randomize = document.getElementById("build-random").checked;
       }
 
       quizzesRef.push(payload).then((ref) => {
-        showToast("🎉 Quiz Published Live!");
+        alert("🎉 Quiz Published Live!");
         closeStudio();
         document.getElementById("quiz-selector").value = ref.key;
         onQuizSelectChange();
       });
     }
 
-    // ================= MULTI-QUIZ DELETE MANAGER =================
-    function openDeleteManager() {
-      document.getElementById("delete-manager-modal").style.display = "flex";
-      document.getElementById("select-all-quizzes").checked = false;
-      renderDeleteQuizList();
-    }
-
-    function closeDeleteManager() {
-      document.getElementById("delete-manager-modal").style.display = "none";
-    }
-
+    function openDeleteManager() { document.getElementById("delete-manager-modal").style.display = "flex"; renderDeleteQuizList(); }
+    function closeDeleteManager() { document.getElementById("delete-manager-modal").style.display = "none"; }
     function renderDeleteQuizList() {
       const listEl = document.getElementById("delete-quiz-list");
-      const customQuizzes = Object.values(availableQuizzes).filter(q => q.id !== "default_spot_radios");
-      updateSelectedDeleteCount();
-
-      if (customQuizzes.length === 0) {
-        listEl.innerHTML = `<div style="padding:18px; text-align:center; color:#94a3b8; font-size:0.9rem;">No custom quizzes in the database. (The built-in default quiz is protected).</div>`;
-        return;
-      }
-
-      listEl.innerHTML = customQuizzes.map(q => {
-        const icon = modeIcons[q.type] || '🎯';
-        const dateStr = q.createdAt ? new Date(q.createdAt).toLocaleDateString() : 'Custom';
-        return `
-          <label style="display:flex; align-items:center; justify-content:space-between; padding:10px; margin:0; border-bottom:1px solid #1e293b; cursor:pointer; color:#f8fafc; font-weight:500;">
-            <div style="display:flex; align-items:center; gap:10px;">
-              <input type="checkbox" class="quiz-del-cb" value="${escapeHtml(q.id)}" onchange="updateSelectedDeleteCount()" style="width:18px; height:18px; margin:0; cursor:pointer;" />
-              <span>${icon} <strong>${escapeHtml(q.title)}</strong> <span style="font-size:0.75rem; color:#94a3b8;">(${q.type.toUpperCase()})</span></span>
-            </div>
-            <span style="font-size:0.75rem; color:#64748b;">${dateStr}</span>
-          </label>
-        `;
-      }).join("");
+      const custom = Object.values(availableQuizzes).filter(q => q.id !== "default_spot_radios");
+      listEl.innerHTML = custom.length === 0 ? `<div style="padding:16px; text-align:center; color:var(--text-muted);">No custom quizzes found.</div>` :
+        custom.map(q => `<label style="display:flex; align-items:center; gap:10px; padding:8px; border-bottom:1px solid #1e293b; cursor:pointer;"><input type="checkbox" class="quiz-del-cb" value="${q.id}" /> ${escapeHtml(q.title)}</label>`).join("");
     }
-
-    function toggleSelectAllQuizzes(checked) {
-      document.querySelectorAll(".quiz-del-cb").forEach(cb => cb.checked = checked);
-      updateSelectedDeleteCount();
-    }
-
-    function updateSelectedDeleteCount() {
-      const count = document.querySelectorAll(".quiz-del-cb:checked").length;
-      document.getElementById("selected-delete-count").textContent = `${count} selected`;
-    }
-
     function deleteSelectedQuizzesBatch() {
-      const checkedBoxes = Array.from(document.querySelectorAll(".quiz-del-cb:checked"));
-      if (checkedBoxes.length === 0) return alert("Please tick at least one quiz to delete.");
-
-      const confirmText = prompt(`Type DELETE to permanently remove ${checkedBoxes.length} selected quiz(zes) and their leaderboards:`);
-      if (!confirmText || confirmText.trim().toUpperCase() !== "DELETE") return;
-
+      const checked = Array.from(document.querySelectorAll(".quiz-del-cb:checked"));
+      if (checked.length === 0) return alert("Select at least one quiz.");
+      if (prompt("Type DELETE to confirm:") !== "DELETE") return;
       const updates = {};
-      checkedBoxes.forEach(cb => {
-        const qId = cb.value;
-        updates[`quizzes/${qId}`] = null;
-        updates[`quiz_scores/${qId}`] = null;
-      });
-
-      db.ref().update(updates).then(() => {
-        showToast(`🗑️ Deleted ${checkedBoxes.length} quiz(zes)`);
-        closeDeleteManager();
-      }).catch(err => alert("Error deleting quizzes: " + err.message));
+      checked.forEach(cb => { updates[`quizzes/${cb.value}`] = null; updates[`quiz_scores/${cb.value}`] = null; });
+      db.ref().update(updates).then(() => { alert("Deleted successfully."); closeDeleteManager(); });
     }
-
-    let toastTimeout;
-    function showToast(msg) {
-      const t = document.getElementById("toast");
-      t.textContent = msg; t.style.opacity = "1";
-      clearTimeout(toastTimeout);
-      toastTimeout = setTimeout(() => t.style.opacity = "0", 1800);
-    }
-
     function escapeHtml(s) { return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
   </script>
 </body>
