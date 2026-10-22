@@ -628,8 +628,8 @@
             <p class="form-section-desc">Start with the essential information about your quiz.</p>
 
             <label class="studio-label">Quiz Title <span>*</span></label>
-            <input type="text" id="build-title" class="studio-input" value="Spot the Radios" oninput="updateLivePreview()" />
-            <span class="char-count">16/80</span>
+            <input type="text" id="build-title" class="studio-input" value="Custom Quiz" oninput="updateLivePreview()" />
+            <span class="char-count">11/80</span>
 
             <label class="studio-label">Quiz Type <span>*</span></label>
             <select id="build-type" class="studio-select" onchange="switchBuilderType(); updateLivePreview();">
@@ -645,12 +645,12 @@
             <div style="font-size:12px; color:var(--text-muted); margin-bottom:18px;">Students identify and click on hidden targets within an image.</div>
 
             <label class="studio-label">Short Description <span>*</span></label>
-            <textarea id="build-desc" class="studio-textarea" rows="2" oninput="updateLivePreview()">Identify common RF devices from imagery.</textarea>
-            <span class="char-count">41/200</span>
+            <textarea id="build-desc" class="studio-textarea" rows="2" oninput="updateLivePreview()">Enter a short overview of your quiz module.</textarea>
+            <span class="char-count">43/200</span>
 
             <label class="studio-label">Learning Objective <span>*</span></label>
-            <textarea id="build-obj" class="studio-textarea" rows="3" oninput="updateLivePreview()">By completing this quiz, students will be able to identify common RF devices and associated emitters from imagery.</textarea>
-            <span class="char-count">92/300</span>
+            <textarea id="build-obj" class="studio-textarea" rows="3" oninput="updateLivePreview()">By completing this quiz, students will master the core learning outcomes.</textarea>
+            <span class="char-count">77/300</span>
 
             <label class="studio-label">Difficulty Level <span>*</span></label>
             <div class="diff-picker">
@@ -683,7 +683,7 @@
                 <label class="studio-label">Estimated Questions</label>
                 <div class="callsign-input-wrap">
                   <i class="far fa-file-alt" style="left:14px;"></i>
-                  <input type="number" id="build-qcount" class="studio-input" value="14" style="padding-left:42px; margin-bottom:2px;" oninput="updateLivePreview()" />
+                  <input type="number" id="build-qcount" class="studio-input" value="10" style="padding-left:42px; margin-bottom:2px;" oninput="updateLivePreview()" />
                 </div>
                 <span style="font-size:11px; color:var(--text-muted);">You will set exact questions in the next step.</span>
               </div>
@@ -708,16 +708,16 @@
 
             <div class="student-card-preview">
               <div class="scp-top">
-                <h4 class="scp-title" id="prev-card-title">Spot the Radios</h4>
+                <h4 class="scp-title" id="prev-card-title">Custom Quiz</h4>
                 <div class="scp-badge" id="prev-card-diff">INTERMEDIATE</div>
               </div>
-              <div class="scp-desc" id="prev-card-desc">Identify common RF devices from imagery.</div>
-              <img id="prev-card-img" src="radios.jpg" class="scp-img" alt="Preview">
+              <div class="scp-desc" id="prev-card-desc">Enter a short overview of your quiz module.</div>
+              <img id="prev-card-img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" class="scp-img" alt="Preview">
               
               <div class="scp-meta">
                 <div class="scp-meta-item">
                   <i class="far fa-question-circle"></i>
-                  <span class="scp-meta-val" id="prev-card-qcount">14</span>
+                  <span class="scp-meta-val" id="prev-card-qcount">10</span>
                   <span class="scp-meta-lbl">Questions</span>
                 </div>
                 <div class="scp-meta-item">
@@ -734,7 +734,7 @@
 
               <div class="scp-obj-box">
                 <div class="scp-obj-title"><i class="fas fa-bullseye"></i> Learning Objective</div>
-                <span id="prev-card-obj">By completing this quiz, students will be able to identify common RF devices and associated emitters from imagery.</span>
+                <span id="prev-card-obj">By completing this quiz, students will master the core learning outcomes.</span>
               </div>
 
               <button class="scp-btn"><i class="fas fa-play" style="margin-right:6px;"></i> Start Quiz (Preview)</button>
@@ -808,25 +808,9 @@
     const quizzesRef = db.ref('quizzes');
     const allScoresRef = db.ref('quiz_scores');
 
-    const defaultQuiz = {
-      id: "default_spot_radios", title: "Spot the Radios (14 RF Devices)", type: "spot", timeLimit: 60, image: "radios.jpg",
-      description: "Identify common RF devices from imagery.",
-      qtype: "Identification (Images)", difficulty: "Intermediate",
-      objective: "Identify common RF devices and associated emitters.",
-      targets: [
-        { id: 1, name: "Bluetooth Earbuds", x: 25.8, y: 35.0, r: 4.0 }, { id: 2, name: "Smartwatch", x: 34.6, y: 71.3, r: 4.0 },
-        { id: 3, name: "Smartphone", x: 42.5, y: 60.0, r: 4.5 }, { id: 4, name: "Wi-Fi Router", x: 46.8, y: 61.5, r: 5.5 },
-        { id: 5, name: "Laptop", x: 53.5, y: 64.5, r: 6.5 }, { id: 6, name: "Wireless Keyboard", x: 52.0, y: 80.0, r: 5.5 },
-        { id: 7, name: "Wireless Mouse", x: 55.8, y: 85.5, r: 4.5 }, { id: 8, name: "Vehicle Key Fob", x: 62.5, y: 92.0, r: 4.5 },
-        { id: 9, name: "Tablet Computer", x: 69.2, y: 78.5, r: 6.5 }, { id: 10, name: "Drone (UAV)", x: 46.3, y: 27.2, r: 4.5 },
-        { id: 11, name: "Commercial Aircraft", x: 59.5, y: 11.8, r: 5.5 }, { id: 12, name: "Satellite", x: 96.8, y: 6.2, r: 5.0 },
-        { id: 13, name: "Mobile Phone Mast", x: 92.3, y: 33.5, r: 5.0 }, { id: 14, name: "Cars (TPMS/Keyless/Radar)", x: 79.8, y: 56.5, r: 6.5 }
-      ]
-    };
-
     const modeIcons = { mcq:'📝', binary:'⚡', sequence:'🔢', triage:'🗂️', acronym:'🔤', spot:'🎯', pin:'📌', catchphrase:'🟩' };
 
-    let availableQuizzes = { "default_spot_radios": defaultQuiz };
+    let availableQuizzes = {};
     let activeQuiz = null, activeScoreListener = null;
     let playerName = "", timeLeft = 60, timerInterval = null, cpTileInterval = null;
     let scoreCount = 0, misses = 0, totalPossible = 14, sessionDetails = [];
@@ -836,7 +820,7 @@
     let parsedDocItems = [], builderTargets = [], uploadedBase64Image = "";
 
     quizzesRef.on('value', (snap) => {
-      availableQuizzes = { "default_spot_radios": defaultQuiz };
+      availableQuizzes = {};
       const data = snap.val();
       if (data) Object.keys(data).forEach(k => availableQuizzes[k] = { ...data[k], id: k });
       populateQuizDropdown();
@@ -849,16 +833,22 @@
       const sel = document.getElementById("quiz-selector");
       const prev = sel.value;
       sel.innerHTML = `<option value="" disabled ${!prev ? 'selected' : ''}>-- Select a Quiz --</option>`;
-      Object.values(availableQuizzes).forEach(q => {
-        const opt = document.createElement("option");
-        opt.value = q.id;
-        opt.textContent = `${modeIcons[q.type] || '🎯'} ${q.title}`;
-        sel.appendChild(opt);
-      });
-      if (prev && availableQuizzes[prev]) {
-        sel.value = prev;
+      const quizKeys = Object.keys(availableQuizzes);
+      
+      if (quizKeys.length === 0) {
+        sel.innerHTML = `<option value="" disabled selected>-- No Quizzes in Database (Create one in Studio) --</option>`;
       } else {
-        sel.value = "";
+        Object.values(availableQuizzes).forEach(q => {
+          const opt = document.createElement("option");
+          opt.value = q.id;
+          opt.textContent = `${modeIcons[q.type] || '🎯'} ${q.title}`;
+          sel.appendChild(opt);
+        });
+        if (prev && availableQuizzes[prev]) {
+          sel.value = prev;
+        } else {
+          sel.value = "";
+        }
       }
       onQuizSelectChange();
     }
@@ -877,11 +867,11 @@
       activeQuiz = availableQuizzes[selId];
       previewCard.style.display = "grid";
 
-      document.getElementById("q-prev-img").src = activeQuiz.image || "radios.jpg";
+      document.getElementById("q-prev-img").src = activeQuiz.image || "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
       document.getElementById("q-prev-title").textContent = activeQuiz.title;
       document.getElementById("q-prev-desc").textContent = activeQuiz.description || "Classroom training module.";
       document.getElementById("q-prev-qtype").textContent = activeQuiz.qtype || activeQuiz.type.toUpperCase();
-      const count = activeQuiz.targets ? activeQuiz.targets.length : (activeQuiz.items ? (activeQuiz.limit > 0 ? Math.min(activeQuiz.limit, activeQuiz.items.length) : activeQuiz.items.length) : 14);
+      const count = activeQuiz.targets ? activeQuiz.targets.length : (activeQuiz.items ? (activeQuiz.limit > 0 ? Math.min(activeQuiz.limit, activeQuiz.items.length) : activeQuiz.items.length) : 10);
       document.getElementById("q-prev-qcount").textContent = count;
       document.getElementById("q-prev-time").textContent = `${activeQuiz.timeLimit} Seconds`;
       document.getElementById("q-prev-diff").innerHTML = `<span class="tag-diff">${activeQuiz.difficulty || 'Intermediate'}</span>`;
@@ -926,7 +916,7 @@
 
     function setupVisualMode() {
       document.getElementById("visual-stage").style.display = "flex";
-      document.getElementById("scene").src = activeQuiz.image || "radios.jpg";
+      document.getElementById("scene").src = activeQuiz.image || "";
       document.querySelectorAll(".marker, .pin-marker").forEach(m => m.remove());
       activeItems = (activeQuiz.targets || []).map((t, i) => ({ ...t, idx: i + 1, found: false }));
       totalPossible = activeItems.length;
@@ -1103,12 +1093,12 @@
     }
 
     function updateLivePreview() {
-      const title = document.getElementById("build-title").value || "Spot the Radios";
-      const desc = document.getElementById("build-desc").value || "Identify common RF devices from imagery.";
-      const qcount = document.getElementById("build-qcount").value || "14";
+      const title = document.getElementById("build-title").value || "Custom Quiz";
+      const desc = document.getElementById("build-desc").value || "Enter a short overview of your quiz module.";
+      const qcount = document.getElementById("build-qcount").value || "10";
       const time = document.getElementById("build-time").value || "60";
       const diff = document.getElementById("build-diff").value || "Intermediate";
-      const obj = document.getElementById("build-obj").value || "By completing this quiz, students will be able to identify common RF devices.";
+      const obj = document.getElementById("build-obj").value || "By completing this quiz, students will master the core learning outcomes.";
 
       document.getElementById("prev-card-title").textContent = title;
       document.getElementById("prev-card-desc").textContent = desc;
@@ -1152,7 +1142,7 @@
         qtype: type === 'mcq' ? 'Multiple Choice' : type === 'spot' ? 'Identification (Images)' : 'Interactive Assessment',
         difficulty: document.getElementById("build-diff").value,
         objective: document.getElementById("build-obj").value.trim() || "Reinforce classroom learning objectives.",
-        image: uploadedBase64Image || "radios.jpg",
+        image: uploadedBase64Image || "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
         targets: [
           { id: 1, name: "Sample Target 1", x: 30, y: 40, r: 5 },
           { id: 2, name: "Sample Target 2", x: 60, y: 70, r: 5 }
@@ -1172,7 +1162,7 @@
     function closeDeleteManager() { document.getElementById("delete-manager-modal").style.display = "none"; }
     function renderDeleteQuizList() {
       const listEl = document.getElementById("delete-quiz-list");
-      const custom = Object.values(availableQuizzes).filter(q => q.id !== "default_spot_radios");
+      const custom = Object.values(availableQuizzes);
       listEl.innerHTML = custom.length === 0 ? `<div style="padding:16px; text-align:center; color:var(--text-muted);">No custom quizzes found.</div>` :
         custom.map(q => `<label style="display:flex; align-items:center; gap:10px; padding:8px; border-bottom:1px solid #1e293b; cursor:pointer;"><input type="checkbox" class="quiz-del-cb" value="${q.id}" /> ${escapeHtml(q.title)}</label>`).join("");
     }
