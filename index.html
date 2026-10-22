@@ -898,7 +898,7 @@
         payload.image = uploadedBase64Image; payload.clue = document.getElementById("build-cp-clue").value.trim(); payload.answers = ans;
       } else {
         if (parsedDocItems.length === 0) return alert("Upload/paste valid questions!");
-        payload.items = parsedDocItems; payload.randomize = document.getElementById("build-random").checked;
+        payload.items = parsedDocItems; payload.randomize = document.getElementById("build-random").checked;    
       }
 
       quizzesRef.push(payload).then((ref) => {
