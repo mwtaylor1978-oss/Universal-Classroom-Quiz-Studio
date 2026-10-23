@@ -17,7 +17,7 @@ const modeIcons = { mcq:'📝', binary:'⚡', sequence:'🔢', triage:'🗂️',
 let availableQuizzes = {};
 let activeQuiz = null, activeScoreListener = null;
 let playerName = "", timeLeft = 60, timerInterval = null, cpTileInterval = null;
-let scoreCount = 0, misses = 0, totalPossible = 14, sessionDetails = [];
+let scoreCount = 0, misses = 0, totalPossible = 10, sessionDetails = [];
 let currentSessionId = Date.now() + "_" + Math.random().toString(36).substring(2, 7);
 
 let activeItems = [], currentIndex = 0, seqProgress = 0;
@@ -109,20 +109,25 @@ function startGame() {
   if (!activeQuiz) return alert("Please select a quiz from the dropdown menu first!");
   playerName = document.getElementById("player-name").value.trim();
   if (!playerName) return alert("Please enter your name!");
-  document.getElementById("display-name").textContent = playerName;
 
   timeLeft = parseInt(activeQuiz.timeLimit) || 60;
   scoreCount = 0; misses = 0; currentIndex = 0; sessionDetails = [];
+  currentSessionId = Date.now() + "_" + Math.random().toString(36).substring(2, 7);
 
-  if (activeQuiz.type === "spot" || activeQuiz.type === "pin") setupVisualMode();
-  else if (activeQuiz.type === "catchphrase") setupCatchphraseMode();
-  else setupCardMode();
+  if (activeQuiz.type === "spot" || activeQuiz.type === "pin") {
+    setupVisualMode();
+  } else if (activeQuiz.type === "catchphrase") {
+    setupCatchphraseMode();
+  } else {
+    setupCardMode();
+  }
 }
 
 function setupVisualMode() {
   document.getElementById("visual-stage").style.display = "flex";
   document.getElementById("scene").src = activeQuiz.image || "";
   document.querySelectorAll(".marker, .pin-marker").forEach(m => m.remove());
+  
   activeItems = (activeQuiz.targets || []).map((t, i) => ({ ...t, idx: i + 1, found: false }));
   totalPossible = activeItems.length;
 
@@ -168,20 +173,33 @@ function renderNextPin() {
 }
 
 document.getElementById("scene").addEventListener("click", function(e) {
-  if (activeQuiz.type !== "spot") return;
+  if (!activeQuiz || activeQuiz.type !== "spot") return;
   const rect = this.getBoundingClientRect();
   const clickX = ((e.clientX - rect.left) / rect.width) * 100;
   const clickY = ((e.clientY - rect.top) / rect.height) * 100;
-  const hit = activeItems.find(item => !item.found && Math.hypot(clickX - item.x, clickY - item.y) <= item.r);
+  
+  const hit = activeItems.find(item => !item.found && Math.hypot(clickX - item.x, clickY - item.y) <= (item.r || 6));
   if (hit) {
     hit.found = true; scoreCount++;
     const m = document.createElement("div");
-    m.style.position = "absolute"; m.style.border = "3px solid #22c55e"; m.style.background = "rgba(34, 197, 94, 0.25)";
-    m.style.borderRadius = "50%"; m.style.transform = "translate(-50%, -50%)";
-    m.style.left = hit.x + "%"; m.style.top = hit.y + "%"; m.style.width = (hit.r * 2) + "%"; m.style.aspectRatio = "1/1";
+    m.style.position = "absolute"; 
+    m.style.border = "3px solid #22c55e"; 
+    m.style.background = "rgba(34, 197, 94, 0.3)";
+    m.style.borderRadius = "50%"; 
+    m.style.transform = "translate(-50%, -50%)";
+    m.style.left = hit.x + "%"; 
+    m.style.top = hit.y + "%"; 
+    m.style.width = ((hit.r || 6) * 2) + "%"; 
+    m.style.aspectRatio = "1/1";
     document.getElementById("img-wrap").appendChild(m);
-    if (scoreCount === activeItems.length) endGame(true);
-  } else { misses++; }
+    
+    sessionDetails.push({ label: `Found ${hit.name || 'Target'}`, ok: true });
+    if (scoreCount === activeItems.length) {
+      setTimeout(() => endGame(true), 600);
+    }
+  } else { 
+    misses++; 
+  }
 });
 
 function setupCardMode() {
@@ -443,74 +461,4 @@ function onStep2MapClick(e) {
   const y = parseFloat((((e.clientY - rect.top) / rect.height) * 100).toFixed(1));
   
   const newId = builderTargets.length + 1;
-  const defaultName = `Target ${newId}`;
-  const defaultRadius = 6;
-
-  builderTargets.push({ id: newId, name: defaultName, x, y, r: defaultRadius });
-  document.getElementById("step2-spot-count").textContent = builderTargets.length;
-  
-  renderStep2Markers();
-  document.getElementById("step2-spot-preview-list").innerHTML = builderTargets.map(t => `<div>#${t.id}: ${escapeHtml(t.name)} (${t.x}%, ${t.y}%)</div>`).join("");
-}
-
-function renderStep2Markers() {
-  const wrap = document.getElementById("step2-canvas-wrap");
-  wrap.querySelectorAll(".map-marker").forEach(m => m.remove());
-
-  builderTargets.forEach(t => {
-    const m = document.createElement("div");
-    m.className = "map-marker";
-    m.textContent = t.id;
-    m.style.left = t.x + "%";
-    m.style.top = t.y + "%";
-    m.style.width = (t.r * 2) + "%";
-    m.style.aspectRatio = "1/1";
-    wrap.appendChild(m);
-  });
-}
-
-function publishQuiz() {
-  const title = document.getElementById("build-title").value.trim();
-  const type = document.getElementById("build-type").value;
-  if (!title) return alert("Please enter a Quiz Title!");
-
-  const payload = {
-    title, type,
-    timeLimit: parseInt(document.getElementById("build-time").value) || 60,
-    description: document.getElementById("build-desc").value.trim() || "Training assessment module.",
-    qtype: type === 'mcq' ? 'Multiple Choice' : type === 'spot' ? 'Identification (Images)' : 'Interactive Assessment',
-    difficulty: document.getElementById("build-diff").value,
-    objective: document.getElementById("build-obj").value.trim() || "Reinforce classroom learning objectives.",
-    image: uploadedBase64Image || "radios.jpg",
-    targets: builderTargets.length > 0 ? builderTargets : [{ id: 1, name: "Target 1", x: 50, y: 50, r: 6 }],
-    items: parsedDocItems,
-    randomize: document.getElementById("set-random") ? document.getElementById("set-random").checked : true,
-    limit: document.getElementById("set-limit") ? parseInt(document.getElementById("set-limit").value) || 0 : 0,
-    createdAt: Date.now()
-  };
-
-  quizzesRef.push(payload).then((ref) => {
-    alert("🎉 Quiz Published Live to Classroom Hub!");
-    closeStudio();
-    document.getElementById("quiz-selector").value = ref.key;
-    onQuizSelectChange();
-  });
-}
-
-function openDeleteManager() { document.getElementById("delete-manager-modal").style.display = "flex"; renderDeleteQuizList(); }
-function closeDeleteManager() { document.getElementById("delete-manager-modal").style.display = "none"; }
-function renderDeleteQuizList() {
-  const listEl = document.getElementById("delete-quiz-list");
-  const custom = Object.values(availableQuizzes);
-  listEl.innerHTML = custom.length === 0 ? `<div style="padding:16px; text-align:center; color:var(--text-muted);">No custom quizzes found.</div>` :
-    custom.map(q => `<label style="display:flex; align-items:center; gap:10px; padding:8px; border-bottom:1px solid #1e293b; cursor:pointer;"><input type="checkbox" class="quiz-del-cb" value="${q.id}" /> ${escapeHtml(q.title)}</label>`).join("");
-}
-function deleteSelectedQuizzesBatch() {
-  const checked = Array.from(document.querySelectorAll(".quiz-del-cb:checked"));
-  if (checked.length === 0) return alert("Select at least one quiz.");
-  if (prompt("Type DELETE to confirm:") !== "DELETE") return;
-  const updates = {};
-  checked.forEach(cb => { updates[`quizzes/${cb.value}`] = null; updates[`quiz_scores/${cb.value}`] = null; });
-  db.ref().update(updates).then(() => { alert("Deleted successfully."); closeDeleteManager(); });
-}
-function escapeHtml(s) { return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+  const default
