@@ -23,7 +23,7 @@ let currentSessionId = Date.now() + "_" + Math.random().toString(36).substring(2
 let activeItems = [], currentIndex = 0, seqProgress = 0;
 let parsedDocItems = [], builderTargets = [], uploadedBase64Image = "";
 let currentStudioStepNum = 1;
-let repositionTargetId = null; // Tracks target waiting for repositioning click
+let repositionTargetId = null;
 
 quizzesRef.on('value', (snap) => {
   availableQuizzes = {};
@@ -499,13 +499,25 @@ function startRepositionTarget(id) {
   }
 }
 
+function deleteTarget(id) {
+  builderTargets = builderTargets.filter(t => t.id !== parseInt(id));
+  // Re-index remaining targets sequentially
+  builderTargets.forEach((t, index) => {
+    t.id = index + 1;
+    t.name = `Target ${t.id}`;
+  });
+  document.getElementById("step2-spot-count").textContent = builderTargets.length;
+  renderStep2Markers();
+  renderStep2TargetList();
+  updateLivePreview();
+}
+
 function onStep2MapClick(e) {
   const rect = e.target.getBoundingClientRect();
   const x = parseFloat((((e.clientX - rect.left) / rect.width) * 100).toFixed(1));
   const y = parseFloat((((e.clientY - rect.top) / rect.height) * 100).toFixed(1));
   
   if (repositionTargetId !== null) {
-    // Update existing target position
     const target = builderTargets.find(t => t.id === repositionTargetId);
     if (target) {
       target.x = x;
@@ -517,7 +529,6 @@ function onStep2MapClick(e) {
       inst.textContent = "Click directly on the challenge image below to drop target zones.";
     }
   } else {
-    // Add new target
     const newId = builderTargets.length + 1;
     const defaultName = `Target ${newId}`;
     const defaultRadius = 6;
@@ -571,6 +582,7 @@ function renderStep2TargetList() {
         <span style="font-weight: 600; color: #fff;">#${t.id}: ${escapeHtml(t.name)} (${t.x}%, ${t.y}%)</span>
         <div style="display: flex; gap: 8px; align-items: center;">
           <button class="btn" style="padding: 4px 10px; font-size: 11px; background: #1e293b; color: var(--accent-yellow); border: 1px solid var(--border-color); border-radius: 4px;" onclick="startRepositionTarget(${t.id})">📍 Reposition</button>
+          <button class="btn" style="padding: 4px 10px; font-size: 11px; background: #991b1b; color: #fff; border: none; border-radius: 4px;" onclick="deleteTarget(${t.id})">🗑️ Delete</button>
           <span style="font-size: 11px; color: var(--accent-blue);">Radius: <span id="r-lbl-${t.id}">${t.r || 6}</span>%</span>
         </div>
       </div>

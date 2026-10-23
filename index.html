@@ -139,9 +139,9 @@
   <!-- ======================================================== -->
   <!-- ================= INSTRUCTOR STUDIO VIEW ================ -->
   <!-- ======================================================== -->
-  <div id="studio-view" style="display: none; flex-direction: column; min-height: 100vh;">
+  <div id="studio-view" style="display: none; flex-direction: column; height: 100vh; overflow: hidden;">
     <!-- Top Header for Studio -->
-    <header class="main-header">
+    <header class="main-header" style="flex-shrink: 0;">
       <div class="header-left">
         <i class="fas fa-graduation-cap"></i>
         <div class="header-title-area">
@@ -180,7 +180,7 @@
         </div>
       </aside>
 
-      <!-- Main Studio Workspace -->
+      <!-- Main Studio Workspace (Scrollable Internally) -->
       <main class="studio-main">
         <div class="studio-topbar">
           <div>
@@ -356,7 +356,8 @@
               <img id="step2-map-img" alt="Mapping Workspace" onclick="onStep2MapClick(event)" style="width:100%; display:block; cursor:crosshair;" />
             </div>
             
-            <label class="studio-label" style="margin-top:16px;">Mapped Targets (<span id="step2-spot-count">0</span>) - Click item to adjust size or reposition:</label>
+            <label class="studio-label" style="margin-top:16px;">Mapped Targets (<span id="step2-spot-count">0</span>):</label>
+            <!-- Auto-expanding container without inner scrollbar -->
             <div id="step2-spot-preview-list" style="background:#0a101a; padding:10px; border-radius:8px; border:1px solid var(--border-color); font-size:13px;">No target points mapped yet. Click on the image above.</div>
           </div>
         </div>
