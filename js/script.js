@@ -34,7 +34,8 @@ quizzesRef.on('value', (snap) => {
     });
   }
   populateQuizDropdown();
-  if (document.getElementById("delete-manager-modal").style.display === "flex") {
+  const deleteModal = document.getElementById("delete-manager-modal");
+  if (deleteModal && deleteModal.style.display === "flex") {
     renderDeleteQuizList();
   }
 });
@@ -657,7 +658,8 @@ function renderDeleteQuizList() {
   if (!listEl) return;
   const custom = Object.values(availableQuizzes);
   listEl.innerHTML = custom.length === 0 ? `<div style="padding:16px; text-align:center; color:var(--text-muted);">No custom quizzes found.</div>` :
-    custom.map(q => `<label style="display:flex; align-items:center; gap:10px; padding:8px; border-bottom:1px solid #1e293b; cursor:pointer;"><input type="checkbox" class="quiz-del-cb" value="${q.id}" /> ${escapeHtml(q.title)}</label>`).join("");
+    custom.map(q => `<label style="display:flex; align-items:center; gap:10px; padding:8px; border-bottom:1px solid #1e293b; cursor:pointer;"><input type="checkbox" class="quiz-del-cb" value="${q.id}" onchange="updateDeleteCount()" /> ${escapeHtml(q.title)}</label>`).join("");
+  updateDeleteCount();
 }
 function deleteSelectedQuizzesBatch() {
   const checked = Array.from(document.querySelectorAll(".quiz-del-cb:checked"));
@@ -676,3 +678,4 @@ function updateDeleteCount() {
   const countEl = document.getElementById("selected-delete-count");
   if (countEl) countEl.textContent = `${count} selected`;
 }
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
