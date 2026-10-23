@@ -141,14 +141,14 @@
   <!-- ======================================================== -->
   <div id="studio-view" style="display: none; position: relative; flex-direction: column; height: 100vh; overflow: hidden;">
     
-    <!-- ================= QUIZ DELETE MANAGER MODAL ================= -->
+    <!-- ================= QUIZ DELETE / EDIT MANAGER MODAL ================= -->
     <div id="delete-manager-modal" style="position: absolute; inset: 0; background: rgba(10, 16, 26, 0.85); z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px;">
       <div class="card" style="max-width: 560px; width: 100%; border: 1px solid var(--border-color); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
         <div style="display:flex; justify-content:space-between; align-items:center;">
           <h3 style="margin:0;">🗂️ Manage Database Quizzes</h3>
-          <button class="btn" style="width:auto; margin:0; padding:6px 12px; background:#334155; color:#fff;" onclick="closeDeleteManager()">✖ Close</button>
+          <button onclick="closeDeleteManager()" style="background: #1e293b; color: #fff; border: 1px solid var(--border-color); width: 36px; height: 36px; border-radius: 50%; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;">✕</button>
         </div>
-        <p style="color:var(--text-muted); font-size:0.85rem; margin:8px 0 12px 0;">Select custom quizzes below to permanently remove them and their scoreboards from Firebase.</p>
+        <p style="color:var(--text-muted); font-size:0.85rem; margin:8px 0 12px 0;">Select Quiz to be edited or removed.</p>
         <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; background:var(--bg-dark); border-radius:8px 8px 0 0; border:1px solid var(--border-color); border-bottom:none;">
           <label style="margin:0; display:inline-flex; align-items:center; gap:8px; cursor:pointer; color:#f8fafc; font-size:0.85rem;">
             <input type="checkbox" id="select-all-quizzes" onchange="toggleSelectAllQuizzes(this.checked)" style="width:16px; height:16px; margin:0;" /> Select All
@@ -209,7 +209,8 @@
             <p class="studio-page-sub" id="studio-main-sub">Follow the steps below to create a training quiz for your students.</p>
           </div>
           <div class="studio-topbar-right">
-            <div class="draft-badge"><i class="fas fa-check-circle"></i> Draft saved <span style="font-weight:400; opacity:0.8; margin-left:4px;">Today at 14:32</span></div>
+            <!-- Dynamic Draft Saved Badge -->
+            <div id="draft-saved-badge" class="draft-badge" style="display: none;"><i class="fas fa-check-circle"></i> Draft saved in database</div>
             <button class="btn-icon-more"><i class="fas fa-ellipsis-v"></i></button>
             <button class="btn-exit" onclick="closeStudio()"><i class="fas fa-arrow-left"></i> Exit to Dashboard</button>
           </div>
@@ -342,7 +343,8 @@
                 <span id="prev-card-obj">Learning objective will appear here...</span>
               </div>
 
-              <button class="scp-btn"><i class="fas fa-play" style="margin-right:6px;"></i> Start Quiz (Preview)</button>
+              <!-- Functional Preview Start Button -->
+              <button class="scp-btn" onclick="startPreviewQuiz()"><i class="fas fa-play" style="margin-right:6px;"></i> Start Quiz (Preview)</button>
               <div style="font-size:10px; color:var(--text-muted); text-align:center; margin-top:6px;">This is how students will see it</div>
             </div>
           </div>
@@ -432,7 +434,7 @@
         <div class="studio-action-bar">
           <button class="btn-cancel" onclick="closeStudio()">Cancel</button>
           <div class="studio-action-right">
-            <button class="btn-draft" onclick="alert('Draft saved successfully!')"><i class="far fa-save" style="margin-right:6px;"></i> Save as Draft</button>
+            <button class="btn-draft" onclick="saveAsDraft()"><i class="far fa-save" style="margin-right:6px;"></i> Save as Draft</button>
             <button class="btn-next" id="studio-next-btn" onclick="nextStudioStep()">Next: Add Content <i class="fas fa-arrow-right"></i></button>
           </div>
         </div>
@@ -446,12 +448,17 @@
     <div class="card"><h3 id="cp-clue-display" style="color:var(--accent-blue);">Identify!</h3><div class="cp-board" style="position:relative; border-radius:10px; overflow:hidden; border:2px solid var(--border-color); background:#000;"><img id="cp-game-img" src="" alt="Mystery" style="width:100%; display:block;" /><div class="cp-grid" id="cp-grid" style="position:absolute; inset:0; display:grid; grid-template-columns:repeat(4, 1fr); grid-template-rows:repeat(4, 1fr);"></div></div><div style="margin-top:14px; display:flex; gap:10px;"><input type="text" id="cp-guess-input" placeholder="Type your answer..." style="margin:0; flex:1; padding:16px; background:var(--bg-dark); border:1px solid var(--border-color); color:white;" onkeydown="if(event.key==='Enter') submitCatchphraseGuess()" /><button class="btn btn-start" style="width:auto; margin:0; padding:16px 32px;" onclick="submitCatchphraseGuess()">Submit</button></div></div>
   </div>
 
-  <!-- ================= VISUAL / SPOT STAGE (Now Centered Overlay with X & Quit Warning) ================= -->
+  <!-- ================= VISUAL / SPOT STAGE ================= -->
   <div id="visual-stage" class="overlay" style="display: none; position: fixed; inset: 0; background: rgba(10, 16, 26, 0.92); z-index: 100; align-items: center; justify-content: center; padding: 20px;">
     <div class="card" style="max-width: 950px; width: 100%; max-height: 90vh; overflow-y: auto; position: relative; border: 1px solid var(--border-color); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
       
-      <!-- Quit X Button -->
-      <button onclick="confirmQuitQuiz()" style="position: absolute; top: 16px; right: 16px; background: #1e293b; color: #fff; border: 1px solid var(--border-color); width: 36px; height: 36px; border-radius: 50%; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10;">✕</button>
+      <!-- Top Bar: Timer & Quit X Button -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <div id="quiz-timer-display" style="font-size: 16px; font-weight: 700; color: var(--accent-yellow); background: #1e293b; padding: 6px 14px; border-radius: 6px; border: 1px solid var(--border-color);">
+          <i class="far fa-clock"></i> Time Left: <span id="time-remaining">60</span>s
+        </div>
+        <button onclick="confirmQuitQuiz()" style="background: #1e293b; color: #fff; border: 1px solid var(--border-color); width: 36px; height: 36px; border-radius: 50%; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;">✕</button>
+      </div>
 
       <div id="pin-prompt-bar" class="box" style="display:none; margin-bottom:16px; background:var(--bg-dark);">
         <div class="progress" id="pin-progress" style="color:var(--accent-blue); text-transform:uppercase; font-size:12px; font-weight:700;">Pin 1</div>
@@ -479,11 +486,45 @@
     </div>
   </div>
 
+  <!-- ================= TIME UP POPUP MODAL ================= -->
+  <div id="timeup-modal" style="position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85); z-index: 200; display: none; align-items: center; justify-content: center; padding: 20px;">
+    <div class="card" style="max-width: 420px; width: 100%; text-align: center; border: 1px solid var(--border-color);">
+      <h3 style="margin-top: 0; color: var(--accent-yellow); font-size: 24px;"><i class="fas fa-hourglass-end"></i> Time's Up!</h3>
+      <p style="color: var(--text-muted); font-size: 15px; line-height: 1.5; margin: 16px 0 24px 0;">
+        Your time has expired. Press OK to log your score into the database.
+      </p>
+      <button class="btn btn-start" style="width: 100%; padding: 14px;" onclick="handleTimeUpOK()">OK</button>
+    </div>
+  </div>
+
   <div id="card-stage" class="overlay" style="display: none;">
     <div class="card" style="max-width: 700px; margin: 40px auto;"><div class="progress" id="card-progress" style="color:var(--accent-blue); text-transform:uppercase; font-size:12px; font-weight:700; margin-bottom:8px;">Item 1</div><div class="prompt-lg" id="card-prompt" style="font-size:22px; font-weight:700; margin:0 0 24px 0; line-height:1.4;">Loading...</div><div id="card-interactive" class="grid-2" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;"></div></div>
   </div>
+
+  <!-- ================= END SCREEN / LEADERBOARD MODAL ================= -->
   <div id="end-screen" class="overlay" style="display: none;">
-    <div class="card" style="max-width: 800px; margin: 40px auto;"><h2 id="end-title" style="margin:0 0 8px 0; text-align:center;">🏆 High Score Table</h2><p id="end-summary" style="font-size:18px; color:var(--accent-blue); margin:4px 0; text-align:center;"></p><div class="table-wrap" style="max-height:45vh; overflow-y:auto; border:1px solid var(--border-color); border-radius:8px;"><table style="width:100%; border-collapse:collapse; text-align:left; font-size:14px;"><thead style="position:sticky; top:0; background:var(--bg-card); z-index:1;"><tr><th style="padding:12px 16px; border-bottom:2px solid var(--border-color); color:var(--text-muted); font-size:12px; text-transform:uppercase;">#</th><th style="padding:12px 16px; border-bottom:2px solid var(--border-color); color:var(--text-muted); font-size:12px; text-transform:uppercase;">Name</th><th style="padding:12px 16px; border-bottom:2px solid var(--border-color); color:var(--text-muted); font-size:12px; text-transform:uppercase;">Score</th><th style="padding:12px 16px; border-bottom:2px solid var(--border-color); color:var(--text-muted); font-size:12px; and text-transform:uppercase;">Time</th><th style="padding:12px 16px; border-bottom:2px solid var(--border-color); color:var(--text-muted); font-size:12px; text-transform:uppercase;">Unnamed</th></tr></thead><tbody id="leaderboard-body"><tr><td colspan="5" style="text-align:center; padding:24px;">Loading...</td></tr></tbody></table></div><div class="btn-row" style="margin-top:32px; display:flex; gap:16px;"><button class="btn btn-start" style="flex:1; margin:0;" onclick="location.reload()">🔄 Main Menu / Play Again</button></div></div>
+    <div class="card" style="max-width: 800px; margin: 40px auto;">
+      <h2 id="end-title" style="margin:0 0 16px 0; text-align:center;">🏆 High Score Table</h2>
+      
+      <div class="table-wrap" style="max-height:45vh; overflow-y:auto; border:1px solid var(--border-color); border-radius:8px;">
+        <table style="width:100%; border-collapse:collapse; text-align:left; font-size:14px;">
+          <thead style="position:sticky; top:0; background:var(--bg-card); z-index:1;">
+            <tr>
+              <th style="padding:12px 16px; border-bottom:2px solid var(--border-color); color:var(--text-muted); font-size:12px; text-transform:uppercase; width: 60px;">#</th>
+              <th style="padding:12px 16px; border-bottom:2px solid var(--border-color); color:var(--text-muted); font-size:12px; text-transform:uppercase;">Name</th>
+              <th style="padding:12px 16px; border-bottom:2px solid var(--border-color); color:var(--text-muted); font-size:12px; text-transform:uppercase;">Score</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboard-body">
+            <tr><td colspan="3" style="text-align:center; padding:24px;">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="btn-row" style="margin-top:32px; display:flex; gap:16px;">
+        <button class="btn btn-start" style="flex:1; margin:0;" onclick="location.reload()">🔄 Main Menu / Play Again</button>
+      </div>
+    </div>
   </div>
 
   <!-- Custom JS File -->

@@ -16,7 +16,7 @@ const modeIcons = { mcq:'📝', binary:'⚡', sequence:'🔢', triage:'🗂️',
 
 let availableQuizzes = {};
 let activeQuiz = null, activeScoreListener = null;
-let playerName = "", timeLeft = 60, timerInterval = null, cpTileInterval = null;
+let playerName = "", timeRemaining = 60, timerInterval = null, cpTileInterval = null;
 let scoreCount = 0, misses = 0, totalPossible = 0, sessionDetails = [];
 let currentSessionId = Date.now() + "_" + Math.random().toString(36).substring(2, 7);
 
@@ -24,6 +24,8 @@ let activeItems = [], currentIndex = 0, seqProgress = 0;
 let parsedDocItems = [], builderTargets = [], uploadedBase64Image = "";
 let currentStudioStepNum = 1;
 let repositionTargetId = null;
+let editingQuizId = null;
+let isPreviewMode = false;
 
 quizzesRef.on('value', (snap) => {
   availableQuizzes = {};
@@ -123,9 +125,70 @@ function startGame() {
   playerName = document.getElementById("player-name").value.trim();
   if (!playerName) return alert("Please enter your name!");
 
-  timeLeft = parseInt(activeQuiz.timeLimit) || 60;
+  isPreviewMode = false;
   scoreCount = 0; misses = 0; currentIndex = 0; sessionDetails = [];
+  timeRemaining = parseInt(activeQuiz.timeLimit) || 60;
+  
+  const timerDisplay = document.getElementById("time-remaining");
+  if (timerDisplay) timerDisplay.textContent = timeRemaining;
+
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    timeRemaining--;
+    if (timerDisplay) timerDisplay.textContent = timeRemaining;
+    if (timeRemaining <= 0) {
+      clearInterval(timerInterval);
+      triggerTimeUpModal();
+    }
+  }, 1000);
+
   currentSessionId = Date.now() + "_" + Math.random().toString(36).substring(2, 7);
+
+  if (activeQuiz.type === "spot" || activeQuiz.type === "pin") {
+    setupVisualMode();
+  } else if (activeQuiz.type === "catchphrase") {
+    setupCatchphraseMode();
+  } else {
+    setupCardMode();
+  }
+}
+
+function startPreviewQuiz() {
+  const title = document.getElementById("build-title").value.trim();
+  if (!title) return alert("Please enter a Quiz Title first to test the preview!");
+
+  isPreviewMode = true;
+  playerName = "Studio Previewer";
+  
+  const type = document.getElementById("build-type").value;
+  activeQuiz = {
+    id: "preview_mode",
+    title: title,
+    type: type,
+    timeLimit: parseInt(document.getElementById("set-time") ? document.getElementById("set-time").value : 60) || 60,
+    description: document.getElementById("build-desc").value.trim() || "Preview description",
+    image: uploadedBase64Image || "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
+    targets: builderTargets.length > 0 ? builderTargets : [{ id: 1, name: "Target 1", x: 50, y: 50, r: 6 }],
+    items: parsedDocItems,
+    randomize: document.getElementById("set-random") ? document.getElementById("set-random").checked : true,
+    limit: document.getElementById("set-limit") ? parseInt(document.getElementById("set-limit").value) || 0 : 0
+  };
+
+  scoreCount = 0; misses = 0; currentIndex = 0; sessionDetails = [];
+  timeRemaining = parseInt(activeQuiz.timeLimit) || 60;
+  
+  const timerDisplay = document.getElementById("time-remaining");
+  if (timerDisplay) timerDisplay.textContent = timeRemaining;
+
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    timeRemaining--;
+    if (timerDisplay) timerDisplay.textContent = timeRemaining;
+    if (timeRemaining <= 0) {
+      clearInterval(timerInterval);
+      triggerTimeUpModal();
+    }
+  }, 1000);
 
   if (activeQuiz.type === "spot" || activeQuiz.type === "pin") {
     setupVisualMode();
@@ -172,12 +235,25 @@ function cancelQuitQuiz() {
 }
 
 function acceptQuitQuiz() {
-  // Hide modals and return to main screen without pushing to Firebase score database
+  if (timerInterval) clearInterval(timerInterval);
   const quitModal = document.getElementById("quit-confirm-modal");
   const visStage = document.getElementById("visual-stage");
   if (quitModal) quitModal.style.display = "none";
   if (visStage) visStage.style.display = "none";
-  alert("Quiz abandoned. Registered as a failure (score not recorded).");
+}
+
+// Time's Up Handlers
+function triggerTimeUpModal() {
+  const visStage = document.getElementById("visual-stage");
+  if (visStage) visStage.style.display = "none";
+  const timeupModal = document.getElementById("timeup-modal");
+  if (timeupModal) timeupModal.style.display = "flex";
+}
+
+function handleTimeUpOK() {
+  const timeupModal = document.getElementById("timeup-modal");
+  if (timeupModal) timeupModal.style.display = "none";
+  endGame(false);
 }
 
 function renderNextPin() {
@@ -312,15 +388,63 @@ function submitCatchphraseGuess() {
 }
 
 function endGame(completedAll) {
-  clearInterval(timerInterval); clearInterval(cpTileInterval);
+  if (timerInterval) clearInterval(timerInterval); 
+  clearInterval(cpTileInterval);
   document.querySelectorAll(".overlay").forEach(o => o.style.display = "none");
   document.getElementById("end-screen").style.display = "flex";
-  document.getElementById("end-title").textContent = completedAll ? "🎉 Challenge Complete!" : "⏱️ Assessment Finished!";
-  document.getElementById("end-summary").textContent = `${playerName}: Score ${scoreCount}/${totalPossible}`;
+  document.getElementById("end-title").textContent = completedAll ? "🏆 Challenge Complete!" : "⏱️ Assessment Finished!";
 
-  allScoresRef.child(activeQuiz.id).push({
-    id: currentSessionId, name: playerName, found: scoreCount, total: totalPossible,
-    time: 45, misses: misses, details: sessionDetails, timestamp: Date.now()
+  const totalTimeAllowed = activeQuiz ? (parseInt(activeQuiz.timeLimit) || 60) : 60;
+  const timeTaken = totalTimeAllowed - Math.max(0, timeRemaining);
+
+  const previewTableBody = document.getElementById("leaderboard-body");
+
+  if (isPreviewMode) {
+    if (previewTableBody) {
+      previewTableBody.innerHTML = `
+        <tr style="background: rgba(0, 150, 255, 0.15); font-weight: 700;">
+          <td style="padding: 12px 16px; border-bottom: 1px solid var(--border-color);">1</td>
+          <td style="padding: 12px 16px; border-bottom: 1px solid var(--border-color);">${escapeHtml(playerName)} (Preview)</td>
+          <td style="padding: 12px 16px; border-bottom: 1px solid var(--border-color);">${scoreCount}/${totalPossible} (${timeTaken}s)</td>
+        </tr>
+      `;
+    }
+    isPreviewMode = false;
+    return;
+  }
+
+  const scorePayload = {
+    id: currentSessionId, 
+    name: playerName, 
+    found: scoreCount, 
+    total: totalPossible,
+    time: timeTaken, 
+    misses: misses, 
+    details: sessionDetails, 
+    timestamp: Date.now()
+  };
+
+  allScoresRef.child(activeQuiz.id).push(scorePayload).then(() => {
+    allScoresRef.child(activeQuiz.id).once('value', (snap) => {
+      const data = snap.val();
+      const tbody = document.getElementById("leaderboard-body");
+      if (!data || !tbody) return;
+
+      const scores = Object.values(data);
+      scores.sort((a, b) => b.found !== a.found ? b.found - a.found : (a.time !== b.time ? a.time - b.time : a.misses - b.misses));
+
+      tbody.innerHTML = scores.map((s, i) => {
+        const isCurrent = s.id === currentSessionId;
+        const rowStyle = isCurrent ? 'background: rgba(0, 150, 255, 0.15); font-weight: 700;' : '';
+        return `
+          <tr style="${rowStyle}">
+            <td style="padding: 12px 16px; border-bottom: 1px solid var(--border-color);">${i + 1}</td>
+            <td style="padding: 12px 16px; border-bottom: 1px solid var(--border-color);">${escapeHtml(s.name)} ${isCurrent ? '(You)' : ''}</td>
+            <td style="padding: 12px 16px; border-bottom: 1px solid var(--border-color);">${s.found}/${s.total || totalPossible} (${s.time}s)</td>
+          </tr>
+        `;
+      }).join("");
+    });
   });
 }
 
@@ -328,23 +452,56 @@ function openLeaderboardOnly() {
   if (!activeQuiz) return alert("Please select a quiz from the dropdown menu first!");
   document.getElementById("end-screen").style.display = "flex";
   document.getElementById("end-title").textContent = `🏆 ${activeQuiz.title}`;
-  document.getElementById("end-summary").textContent = "Live Classroom Leaderboard";
+
+  allScoresRef.child(activeQuiz.id).once('value', (snap) => {
+    const data = snap.val();
+    const tbody = document.getElementById("leaderboard-body");
+    if (!tbody) return;
+    if (!data) {
+      tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding:24px; color:var(--text-muted);">No scores recorded yet.</td></tr>`;
+      return;
+    }
+
+    const scores = Object.values(data);
+    scores.sort((a, b) => b.found !== a.found ? b.found - a.found : (a.time !== b.time ? a.time - b.time : a.misses - b.misses));
+
+    tbody.innerHTML = scores.map((s, i) => `
+      <tr>
+        <td style="padding: 12px 16px; border-bottom: 1px solid var(--border-color);">${i + 1}</td>
+        <td style="padding: 12px 16px; border-bottom: 1px solid var(--border-color);">${escapeHtml(s.name)}</td>
+        <td style="padding: 12px 16px; border-bottom: 1px solid var(--border-color);">${s.found}/${s.total || 10} (${s.time}s)</td>
+      </tr>
+    `).join("");
+  });
 }
 
-// Studio & Wizard Step Management Logic (Blank Form Reset)
+// Studio & Wizard Step Management Logic
 function openStudio() {
   const studentView = document.getElementById("student-view");
   const studioView = document.getElementById("studio-view");
   if (studentView) studentView.style.display = "none";
   if (studioView) studioView.style.display = "flex";
 
+  editingQuizId = null;
   document.getElementById("build-title").value = "";
   document.getElementById("build-desc").value = "";
   document.getElementById("build-obj").value = "";
   document.getElementById("build-type").value = "spot";
+  document.getElementById("set-time").value = "60";
+  document.getElementById("set-limit").value = "0";
+  document.getElementById("set-random").checked = true;
   document.getElementById("img-upload").value = "";
   document.getElementById("builder-canvas-wrap").style.display = "none";
+  
+  const emptyImgSrc = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
   uploadedBase64Image = "";
+  document.getElementById("prev-card-img").src = emptyImgSrc;
+  document.getElementById("builder-img").src = emptyImgSrc;
+  document.getElementById("step2-map-img").src = emptyImgSrc;
+
+  const badge = document.getElementById("draft-saved-badge");
+  if (badge) badge.style.display = "none";
+
   builderTargets = [];
   parsedDocItems = [];
   repositionTargetId = null;
@@ -393,7 +550,7 @@ function switchStudioStep(stepNum) {
 
   const nextBtn = document.getElementById("studio-next-btn");
   if (stepNum === 5) {
-    nextBtn.innerHTML = `Publish Live <i class="fas fa-rocket"></i>`;
+    nextBtn.innerHTML = editingQuizId ? `Update Quiz Live <i class="fas fa-rocket"></i>` : `Publish Live <i class="fas fa-rocket"></i>`;
     nextBtn.onclick = publishQuiz;
   } else {
     const nextLabels = { 1: "Next: Add Content", 2: "Next: Game Settings", 3: "Next: Review", 4: "Next: Publish" };
@@ -621,9 +778,12 @@ function renderStep2TargetList() {
 }
 
 function publishQuiz() {
-  const title = document.getElementById("build-title").value.trim();
+  let title = document.getElementById("build-title").value.trim();
   const type = document.getElementById("build-type").value;
   if (!title) return alert("Please enter a Quiz Title!");
+
+  title = title.replace(/\s*\(DRAFT\)$/i, "").trim();
+  document.getElementById("build-title").value = title;
 
   const payload = {
     title, type,
@@ -637,13 +797,61 @@ function publishQuiz() {
     items: parsedDocItems,
     randomize: document.getElementById("set-random") ? document.getElementById("set-random").checked : true,
     limit: document.getElementById("set-limit") ? parseInt(document.getElementById("set-limit").value) || 0 : 0,
+    isDraft: false,
     createdAt: Date.now()
   };
 
-  quizzesRef.push(payload).then((ref) => {
-    alert("🎉 Quiz Published Live to Classroom Hub!");
+  const savePromise = editingQuizId 
+    ? quizzesRef.child(editingQuizId).set(payload) 
+    : quizzesRef.push(payload).then(ref => ref.key);
+
+  savePromise.then((key) => {
+    alert(editingQuizId ? "🎉 Quiz Published Live!" : "🎉 Quiz Published Live to Classroom Hub!");
+    const targetKey = editingQuizId || key;
+    editingQuizId = null;
     closeStudio();
-    document.getElementById("quiz-selector").value = ref.key;
+    document.getElementById("quiz-selector").value = targetKey;
+    onQuizSelectChange();
+  });
+}
+
+function saveAsDraft() {
+  let title = document.getElementById("build-title").value.trim();
+  const type = document.getElementById("build-type").value;
+  if (!title) return alert("Please enter a Quiz Title before saving as draft!");
+
+  if (!/\(DRAFT\)$/i.test(title)) {
+    title += " (DRAFT)";
+  }
+  document.getElementById("build-title").value = title;
+
+  const payload = {
+    title, type,
+    timeLimit: parseInt(document.getElementById("set-time") ? document.getElementById("set-time").value : 60) || 60,
+    description: document.getElementById("build-desc").value.trim() || "Training assessment module.",
+    qtype: type === 'mcq' ? 'Multiple Choice' : type === 'spot' ? 'Identification (Images)' : 'Interactive Assessment',
+    difficulty: document.getElementById("build-diff").value,
+    objective: document.getElementById("build-obj").value.trim() || "Reinforce classroom learning objectives.",
+    image: uploadedBase64Image || "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
+    targets: builderTargets.length > 0 ? builderTargets : [{ id: 1, name: "Target 1", x: 50, y: 50, r: 6 }],
+    items: parsedDocItems,
+    randomize: document.getElementById("set-random") ? document.getElementById("set-random").checked : true,
+    limit: document.getElementById("set-limit") ? parseInt(document.getElementById("set-limit").value) || 0 : 0,
+    isDraft: true,
+    createdAt: Date.now()
+  };
+
+  const savePromise = editingQuizId 
+    ? quizzesRef.child(editingQuizId).set(payload) 
+    : quizzesRef.push(payload).then(ref => ref.key);
+
+  savePromise.then((key) => {
+    if (!editingQuizId) editingQuizId = key;
+    const badge = document.getElementById("draft-saved-badge");
+    if (badge) {
+      badge.style.display = "flex";
+      setTimeout(() => { badge.style.display = "none"; }, 4000);
+    }
     onQuizSelectChange();
   });
 }
@@ -661,6 +869,7 @@ function openDeleteManager() {
     renderDeleteQuizList();
   }
 }
+
 function closeDeleteManager() {
   const modal = document.getElementById("delete-manager-modal");
   const navMyQuizzes = document.getElementById("nav-myquizzes");
@@ -673,14 +882,82 @@ function closeDeleteManager() {
     modal.style.display = "none";
   }
 }
+
+function loadQuizForEdit(quizId) {
+  const q = availableQuizzes[quizId];
+  if (!q) return alert("Quiz not found.");
+
+  closeDeleteManager();
+  openStudio();
+  editingQuizId = quizId;
+
+  document.getElementById("build-title").value = q.title || "";
+  document.getElementById("build-desc").value = q.description || "";
+  document.getElementById("build-obj").value = q.objective || "";
+  document.getElementById("build-type").value = q.type || "spot";
+  document.getElementById("set-time").value = q.timeLimit || 60;
+  document.getElementById("set-limit").value = q.limit || 0;
+  if (document.getElementById("set-random")) {
+    document.getElementById("set-random").checked = q.randomize !== false;
+  }
+
+  const diff = q.difficulty || "Beginner";
+  document.getElementById("build-diff").value = diff;
+  document.querySelectorAll(".diff-card").forEach(c => {
+    if (c.textContent.includes(diff) || (diff === "Beginner" && c.textContent.includes("Easy")) || (diff === "Advanced" && c.textContent.includes("Hard"))) {
+      c.classList.add("selected");
+    } else {
+      c.classList.remove("selected");
+    }
+  });
+
+  uploadedBase64Image = q.image || "";
+  if (uploadedBase64Image) {
+    document.getElementById("builder-img").src = uploadedBase64Image;
+    document.getElementById("builder-canvas-wrap").style.display = "inline-block";
+    document.getElementById("step2-map-img").src = uploadedBase64Image;
+    document.getElementById("prev-card-img").src = uploadedBase64Image;
+  }
+
+  builderTargets = q.targets ? JSON.parse(JSON.stringify(q.targets)) : [];
+  parsedDocItems = q.items ? JSON.parse(JSON.stringify(q.items)) : [];
+
+  document.getElementById("step2-spot-count").textContent = builderTargets.length;
+  document.getElementById("doc-count").textContent = parsedDocItems.length;
+
+  updateLivePreview();
+}
+
 function renderDeleteQuizList() {
   const listEl = document.getElementById("delete-quiz-list");
   if (!listEl) return;
   const custom = Object.values(availableQuizzes);
   listEl.innerHTML = custom.length === 0 ? `<div style="padding:16px; text-align:center; color:var(--text-muted);">No custom quizzes found.</div>` :
-    custom.map(q => `<label style="display:flex; align-items:center; gap:10px; padding:8px; border-bottom:1px solid #1e293b; cursor:pointer;"><input type="checkbox" class="quiz-del-cb" value="${q.id}" onchange="updateDeleteCount()" /> ${escapeHtml(q.title)}</label>`).join("");
+    custom.map(q => `
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:8px; border-bottom:1px solid #1e293b;">
+        <label style="display:flex; align-items:center; gap:10px; cursor:pointer; flex:1; margin:0; overflow:hidden; text-overflow:ellipsis;">
+          <input type="checkbox" class="quiz-del-cb" value="${q.id}" onchange="updateDeleteCount()" style="width:16px; height:16px; margin:0; flex-shrink:0;" /> 
+          <span style="color:#fff; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(q.title)}</span>
+        </label>
+        <div style="display:flex; gap:6px; flex-shrink:0; margin-left:8px;">
+          <button class="btn" style="padding: 4px 10px; font-size: 11px; background: #1e293b; color: var(--accent-yellow); border: 1px solid var(--border-color); border-radius: 4px;" onclick="clearScoreboard('${q.id}', '${escapeHtml(q.title).replace(/'/g, "\\'")}')">🧹 Clear</button>
+          <button class="btn" style="padding: 4px 10px; font-size: 11px; background: #1e293b; color: var(--accent-blue); border: 1px solid var(--border-color); border-radius: 4px;" onclick="loadQuizForEdit('${q.id}')">✏️ Edit</button>
+        </div>
+      </div>
+    `).join("");
   updateDeleteCount();
 }
+
+function clearScoreboard(quizId, quizTitle) {
+  if (!confirm(`Are you sure you want to clear all high scores and leaderboard records for "${quizTitle}"?`)) return;
+  
+  allScoresRef.child(quizId).remove().then(() => {
+    alert(`Scoreboard for "${quizTitle}" has been cleared successfully.`);
+  }).catch((error) => {
+    alert("Failed to clear scoreboard: " + error.message);
+  });
+}
+
 function deleteSelectedQuizzesBatch() {
   const checked = Array.from(document.querySelectorAll(".quiz-del-cb:checked"));
   if (checked.length === 0) return alert("Select at least one quiz.");
@@ -689,13 +966,16 @@ function deleteSelectedQuizzesBatch() {
   checked.forEach(cb => { updates[`quizzes/${cb.value}`] = null; updates[`quiz_scores/${cb.value}`] = null; });
   db.ref().update(updates).then(() => { alert("Deleted successfully."); closeDeleteManager(); });
 }
+
 function toggleSelectAllQuizzes(isChecked) {
   document.querySelectorAll(".quiz-del-cb").forEach(cb => cb.checked = isChecked);
   updateDeleteCount();
 }
+
 function updateDeleteCount() {
   const count = document.querySelectorAll(".quiz-del-cb:checked").length;
   const countEl = document.getElementById("selected-delete-count");
   if (countEl) countEl.textContent = `${count} selected`;
 }
+
 function escapeHtml(s) { return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }

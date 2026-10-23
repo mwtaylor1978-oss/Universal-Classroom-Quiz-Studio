@@ -395,11 +395,27 @@ input#player-name::placeholder { color: #4a5568; }
 .btn-next { background: var(--success-green); color: #fff; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; }
 .btn-next:hover { background: #15803d; }
 
-/* Mapped Target Indicator Marker Styles */
-.map-marker {
+/* Mapped Target Indicator Marker Styles (Strictly scoped to Studio Canvas) */
+#step2-canvas-wrap .map-marker {
   position: absolute;
   border: 3px solid #22c55e;
   background: rgba(34, 197, 94, 0.3);
   border-radius: 50%;
   transform: translate(-50%, -50%);
   pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 11px;
+}
+
+/* Overlays & Modals */
+.overlay { position: fixed; inset: 0; background: rgba(10, 16, 26, 0.95); display: none; flex-direction: column; z-index: 50; overflow-y: auto; }
+.overlay .card { max-width: 800px; width: 90%; margin: 40px auto; }
+
+@media (max-width: 900px) {
+  .studio-grid { grid-template-columns: 1fr !important; }
+  .live-preview-pane { position: static; }
+}
