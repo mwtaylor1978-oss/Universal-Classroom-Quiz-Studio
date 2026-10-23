@@ -629,6 +629,12 @@ function publishQuiz() {
 
 function openDeleteManager() {
   const modal = document.getElementById("delete-manager-modal");
+  const navMyQuizzes = document.getElementById("nav-myquizzes");
+  const navCreate = document.getElementById("nav-create");
+
+  if (navCreate) navCreate.classList.remove("active");
+  if (navMyQuizzes) navMyQuizzes.classList.add("active");
+
   if (modal) {
     modal.style.display = "flex";
     renderDeleteQuizList();
@@ -636,6 +642,12 @@ function openDeleteManager() {
 }
 function closeDeleteManager() {
   const modal = document.getElementById("delete-manager-modal");
+  const navMyQuizzes = document.getElementById("nav-myquizzes");
+  const navCreate = document.getElementById("nav-create");
+
+  if (navMyQuizzes) navMyQuizzes.classList.remove("active");
+  if (navCreate) navCreate.classList.add("active");
+
   if (modal) {
     modal.style.display = "none";
   }
@@ -655,4 +667,12 @@ function deleteSelectedQuizzesBatch() {
   checked.forEach(cb => { updates[`quizzes/${cb.value}`] = null; updates[`quiz_scores/${cb.value}`] = null; });
   db.ref().update(updates).then(() => { alert("Deleted successfully."); closeDeleteManager(); });
 }
-function escapeHtml(s) { return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function toggleSelectAllQuizzes(isChecked) {
+  document.querySelectorAll(".quiz-del-cb").forEach(cb => cb.checked = isChecked);
+  updateDeleteCount();
+}
+function updateDeleteCount() {
+  const count = document.querySelectorAll(".quiz-del-cb:checked").length;
+  const countEl = document.getElementById("selected-delete-count");
+  if (countEl) countEl.textContent = `${count} selected`;
+}
