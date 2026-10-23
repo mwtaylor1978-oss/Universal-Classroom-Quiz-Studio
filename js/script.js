@@ -351,6 +351,15 @@ function switchStudioStep(stepNum) {
     }
   }
 
+  // Highlight Sidebar Nav Items
+  const navCreate = document.getElementById("nav-create");
+  const navMyQuizzes = document.getElementById("nav-myquizzes");
+  if (navCreate) navCreate.classList.remove("active");
+  if (navMyQuizzes) navMyQuizzes.classList.remove("active");
+  if (stepNum >= 1 && stepNum <= 5) {
+    if (navCreate) navCreate.classList.add("active");
+  }
+
   const titles = {
     1: ["Create New Quiz", "Follow the steps below to create a training quiz for your students."],
     2: ["Add Content", "Upload source questions or map interactive target zones on your challenge media."],
@@ -501,7 +510,6 @@ function startRepositionTarget(id) {
 
 function deleteTarget(id) {
   builderTargets = builderTargets.filter(t => t.id !== parseInt(id));
-  // Re-index remaining targets sequentially
   builderTargets.forEach((t, index) => {
     t.id = index + 1;
     t.name = `Target ${t.id}`;
@@ -619,10 +627,22 @@ function publishQuiz() {
   });
 }
 
-function openDeleteManager() { document.getElementById("delete-manager-modal").style.display = "flex"; renderDeleteQuizList(); }
-function closeDeleteManager() { document.getElementById("delete-manager-modal").style.display = "none"; }
+function openDeleteManager() {
+  const modal = document.getElementById("delete-manager-modal");
+  if (modal) {
+    modal.style.display = "flex";
+    renderDeleteQuizList();
+  }
+}
+function closeDeleteManager() {
+  const modal = document.getElementById("delete-manager-modal");
+  if (modal) {
+    modal.style.display = "none";
+  }
+}
 function renderDeleteQuizList() {
   const listEl = document.getElementById("delete-quiz-list");
+  if (!listEl) return;
   const custom = Object.values(availableQuizzes);
   listEl.innerHTML = custom.length === 0 ? `<div style="padding:16px; text-align:center; color:var(--text-muted);">No custom quizzes found.</div>` :
     custom.map(q => `<label style="display:flex; align-items:center; gap:10px; padding:8px; border-bottom:1px solid #1e293b; cursor:pointer;"><input type="checkbox" class="quiz-del-cb" value="${q.id}" /> ${escapeHtml(q.title)}</label>`).join("");
