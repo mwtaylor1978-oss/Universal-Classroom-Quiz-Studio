@@ -24,10 +24,15 @@ let activeItems = [], currentIndex = 0, seqProgress = 0;
 let parsedDocItems = [], builderTargets = [], uploadedBase64Image = "";
 let currentStudioStepNum = 1;
 
+// Load Quizzes from Firebase on startup
 quizzesRef.on('value', (snap) => {
   availableQuizzes = {};
   const data = snap.val();
-  if (data) Object.keys(data).forEach(k => availableQuizzes[k] = { ...data[k], id: k });
+  if (data) {
+    Object.keys(data).forEach(k => {
+      availableQuizzes[k] = { ...data[k], id: k };
+    });
+  }
   populateQuizDropdown();
   if (document.getElementById("delete-manager-modal").style.display === "flex") {
     renderDeleteQuizList();
@@ -36,8 +41,9 @@ quizzesRef.on('value', (snap) => {
 
 function populateQuizDropdown() {
   const sel = document.getElementById("quiz-selector");
+  if (!sel) return;
   const prev = sel.value;
-  sel.innerHTML = `<option value="" disabled ${!prev ? 'selected' : ''}>-- Select a Quiz --</option>`;
+  sel.innerHTML = `<option value="" disabled selected>-- Select a Quiz --</option>`;
   const quizKeys = Object.keys(availableQuizzes);
   
   if (quizKeys.length === 0) {
@@ -59,13 +65,18 @@ function populateQuizDropdown() {
 }
 
 function onQuizSelectChange() {
-  const selId = document.getElementById("quiz-selector").value;
+  const sel = document.getElementById("quiz-selector");
   const previewCard = document.getElementById("quiz-preview-card");
-  
+  if (!sel || !previewCard) return;
+
+  const selId = sel.value;
   if (!selId || !availableQuizzes[selId]) {
     activeQuiz = null;
     previewCard.style.display = "none";
-    document.getElementById("sidebar-lb-list").innerHTML = `<div class="lb-item" style="justify-content: center; color: var(--text-muted); border:none;">Select a quiz to view scores.</div>`;
+    const lbList = document.getElementById("sidebar-lb-list");
+    if (lbList) {
+      lbList.innerHTML = `<div class="lb-item" style="justify-content: center; color: var(--text-muted); border:none;">Select a quiz to view scores.</div>`;
+    }
     return;
   }
 
@@ -87,6 +98,7 @@ function onQuizSelectChange() {
   activeScoreListener.on('value', (snap) => {
     const data = snap.val();
     const lbList = document.getElementById("sidebar-lb-list");
+    if (!lbList) return;
     if (!data) {
       lbList.innerHTML = `<div class="lb-item" style="justify-content: center; color: var(--text-muted); border:none;">No scores yet. Be the first!</div>`;
       return;
@@ -299,13 +311,18 @@ function openLeaderboardOnly() {
 
 // Studio & Wizard Step Management Logic
 function openStudio() {
-  document.getElementById("student-view").style.display = "none";
-  document.getElementById("studio-view").style.display = "flex";
+  const studentView = document.getElementById("student-view");
+  const studioView = document.getElementById("studio-view");
+  if (studentView) studentView.style.display = "none";
+  if (studioView) studioView.style.display = "flex";
   switchStudioStep(1);
 }
+
 function closeStudio() {
-  document.getElementById("studio-view").style.display = "none";
-  document.getElementById("student-view").style.display = "block";
+  const studentView = document.getElementById("student-view");
+  const studioView = document.getElementById("studio-view");
+  if (studioView) studioView.style.display = "none";
+  if (studentView) studentView.style.display = "block";
 }
 
 function switchStudioStep(stepNum) {
@@ -461,4 +478,74 @@ function onStep2MapClick(e) {
   const y = parseFloat((((e.clientY - rect.top) / rect.height) * 100).toFixed(1));
   
   const newId = builderTargets.length + 1;
-  const default
+  const defaultName = `Target ${newId}`;
+  const defaultRadius = 6;
+
+  builderTargets.push({ id: newId, name: defaultName, x, y, r: defaultRadius });
+  document.getElementById("step2-spot-count").textContent = builderTargets.length;
+  
+  renderStep2Markers();
+  document.getElementById("step2-spot-preview-list").innerHTML = builderTargets.map(t => `<div>#${t.id}: ${escapeHtml(t.name)} (${t.x}%, ${t.y}%)</div>`).join("");
+}
+
+function renderStep2Markers() {
+  const wrap = document.getElementById("step2-canvas-wrap");
+  wrap.querySelectorAll(".map-marker").forEach(m => m.remove());
+
+  builderTargets.forEach(t => {
+    const m = document.createElement("div");
+    m.className = "map-marker";
+    m.textContent = t.id;
+    m.style.left = t.x + "%";
+    m.style.top = t.y + "%";
+    m.style.width = (t.r * 2) + "%";
+    m.style.aspectRatio = "1/1";
+    wrap.appendChild(m);
+  });
+}
+
+function publishQuiz() {
+  const title = document.getElementById("build-title").value.trim();
+  const type = document.getElementById("build-type").value;
+  if (!title) return alert("Please enter a Quiz Title!");
+
+  const payload = {
+    title, type,
+    timeLimit: parseInt(document.getElementById("build-time").value) || 60,
+    description: document.getElementById("build-desc").value.trim() || "Training assessment module.",
+    qtype: type === 'mcq' ? 'Multiple Choice' : type === 'spot' ? 'Identification (Images)' : 'Interactive Assessment',
+    difficulty: document.getElementById("build-diff").value,
+    objective: document.getElementById("build-obj").value.trim() || "Reinforce classroom learning objectives.",
+    image: uploadedBase64Image || "radios.jpg",
+    targets: builderTargets.length > 0 ? builderTargets : [{ id: 1, name: "Target 1", x: 50, y: 50, r: 6 }],
+    items: parsedDocItems,
+    randomize: document.getElementById("set-random") ? document.getElementById("set-random").checked : true,
+    limit: document.getElementById("set-limit") ? parseInt(document.getElementById("set-limit").value) || 0 : 0,
+    createdAt: Date.now()
+  };
+
+  quizzesRef.push(payload).then((ref) => {
+    alert("🎉 Quiz Published Live to Classroom Hub!");
+    closeStudio();
+    document.getElementById("quiz-selector").value = ref.key;
+    onQuizSelectChange();
+  });
+}
+
+function openDeleteManager() { document.getElementById("delete-manager-modal").style.display = "flex"; renderDeleteQuizList(); }
+function closeDeleteManager() { document.getElementById("delete-manager-modal").style.display = "none"; }
+function renderDeleteQuizList() {
+  const listEl = document.getElementById("delete-quiz-list");
+  const custom = Object.values(availableQuizzes);
+  listEl.innerHTML = custom.length === 0 ? `<div style="padding:16px; text-align:center; color:var(--text-muted);">No custom quizzes found.</div>` :
+    custom.map(q => `<label style="display:flex; align-items:center; gap:10px; padding:8px; border-bottom:1px solid #1e293b; cursor:pointer;"><input type="checkbox" class="quiz-del-cb" value="${q.id}" /> ${escapeHtml(q.title)}</label>`).join("");
+}
+function deleteSelectedQuizzesBatch() {
+  const checked = Array.from(document.querySelectorAll(".quiz-del-cb:checked"));
+  if (checked.length === 0) return alert("Select at least one quiz.");
+  if (prompt("Type DELETE to confirm:") !== "DELETE") return;
+  const updates = {};
+  checked.forEach(cb => { updates[`quizzes/${cb.value}`] = null; updates[`quiz_scores/${cb.value}`] = null; });
+  db.ref().update(updates).then(() => { alert("Deleted successfully."); closeDeleteManager(); });
+}
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
