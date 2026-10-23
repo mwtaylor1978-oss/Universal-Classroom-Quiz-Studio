@@ -23,6 +23,7 @@ let currentSessionId = Date.now() + "_" + Math.random().toString(36).substring(2
 let activeItems = [], currentIndex = 0, seqProgress = 0;
 let parsedDocItems = [], builderTargets = [], uploadedBase64Image = "";
 let currentStudioStepNum = 1;
+let currentBuilderRadius = 6;
 
 quizzesRef.on('value', (snap) => {
   availableQuizzes = {};
@@ -315,7 +316,7 @@ function openStudio() {
   if (studentView) studentView.style.display = "none";
   if (studioView) studioView.style.display = "flex";
 
-  // Reset form fields to completely blank state
+  // Reset all form inputs to blank state
   document.getElementById("build-title").value = "";
   document.getElementById("build-desc").value = "";
   document.getElementById("build-obj").value = "";
@@ -489,6 +490,12 @@ function parseCurrentDocText() {
   updateLivePreview();
 }
 
+function updateBuilderRadius(val) {
+  currentBuilderRadius = parseInt(val);
+  const display = document.getElementById("radius-val-display");
+  if (display) display.textContent = val + "%";
+}
+
 function onStep2MapClick(e) {
   const rect = e.target.getBoundingClientRect();
   const x = parseFloat((((e.clientX - rect.left) / rect.width) * 100).toFixed(1));
@@ -496,18 +503,18 @@ function onStep2MapClick(e) {
   
   const newId = builderTargets.length + 1;
   const defaultName = `Target ${newId}`;
-  const defaultRadius = 6;
 
-  builderTargets.push({ id: newId, name: defaultName, x, y, r: defaultRadius });
+  builderTargets.push({ id: newId, name: defaultName, x, y, r: currentBuilderRadius });
   document.getElementById("step2-spot-count").textContent = builderTargets.length;
   
   renderStep2Markers();
-  document.getElementById("step2-spot-preview-list").innerHTML = builderTargets.map(t => `<div>#${t.id}: ${escapeHtml(t.name)} (${t.x}%, ${t.y}%)</div>`).join("");
+  document.getElementById("step2-spot-preview-list").innerHTML = builderTargets.map(t => `<div>#${t.id}: ${escapeHtml(t.name)} (${t.x}%, ${t.y}%) [Radius: ${t.r}%]</div>`).join("");
   updateLivePreview();
 }
 
 function renderStep2Markers() {
   const wrap = document.getElementById("step2-canvas-wrap");
+  if (!wrap) return;
   wrap.querySelectorAll(".map-marker").forEach(m => m.remove());
 
   builderTargets.forEach(t => {
@@ -516,7 +523,7 @@ function renderStep2Markers() {
     m.textContent = t.id;
     m.style.left = t.x + "%";
     m.style.top = t.y + "%";
-    m.style.width = (t.r * 2) + "%";
+    m.style.width = ((t.r || 6) * 2) + "%";
     m.style.aspectRatio = "1/1";
     wrap.appendChild(m);
   });
@@ -542,7 +549,7 @@ function publishQuiz() {
     createdAt: Date.now()
   };
 
-  quizzesRef.push(payload).then((ref) => {
+    quizzesRef.push(payload).then((ref) => {
     alert("🎉 Quiz Published Live to Classroom Hub!");
     closeStudio();
     document.getElementById("quiz-selector").value = ref.key;
