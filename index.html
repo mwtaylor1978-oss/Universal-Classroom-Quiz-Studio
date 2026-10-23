@@ -233,8 +233,8 @@
             <p class="form-section-desc">Start with the essential information about your quiz.</p>
 
             <label class="studio-label">Quiz Title <span>*</span></label>
-            <input type="text" id="build-title" class="studio-input" value="Spot the Radios" oninput="updateLivePreview()" />
-            <span class="char-count">16/80</span>
+            <input type="text" id="build-title" class="studio-input" value="" placeholder="e.g. Radar Fundamentals" oninput="updateLivePreview()" />
+            <span class="char-count" id="title-char-count">0/80</span>
 
             <label class="studio-label">Quiz Type <span>*</span></label>
             <select id="build-type" class="studio-select" onchange="switchBuilderType(); updateLivePreview();">
@@ -250,20 +250,20 @@
             <div style="font-size:12px; color:var(--text-muted); margin-bottom:18px;">Students identify and click on hidden targets within an image.</div>
 
             <label class="studio-label">Short Description <span>*</span></label>
-            <textarea id="build-desc" class="studio-textarea" rows="2" oninput="updateLivePreview()">Identify common RF devices from imagery.</textarea>
-            <span class="char-count">41/200</span>
+            <textarea id="build-desc" class="studio-textarea" rows="2" placeholder="Brief summary of the module..." oninput="updateLivePreview()"></textarea>
+            <span class="char-count" id="desc-char-count">0/200</span>
 
             <label class="studio-label">Learning Objective <span>*</span></label>
-            <textarea id="build-obj" class="studio-textarea" rows="3" oninput="updateLivePreview()">By completing this quiz, students will be able to identify common RF devices and associated emitters from imagery.</textarea>
-            <span class="char-count">92/300</span>
+            <textarea id="build-obj" class="studio-textarea" rows="3" placeholder="What will students achieve..." oninput="updateLivePreview()"></textarea>
+            <span class="char-count" id="obj-char-count">0/300</span>
 
             <label class="studio-label">Difficulty Level <span>*</span></label>
             <div class="diff-picker">
-              <div class="diff-card" onclick="setDifficulty('Beginner', this)">
+              <div class="diff-card selected" onclick="setDifficulty('Beginner', this)">
                 <div class="diff-card-top"><div class="diff-radio"></div> Easy</div>
                 <div class="diff-card-desc">Good for introduction and basic recognition</div>
               </div>
-              <div class="diff-card selected" onclick="setDifficulty('Intermediate', this)">
+              <div class="diff-card" onclick="setDifficulty('Intermediate', this)">
                 <div class="diff-card-top"><div class="diff-radio"></div> Intermediate</div>
                 <div class="diff-card-desc">Balanced challenge for most learners</div>
               </div>
@@ -272,7 +272,7 @@
                 <div class="diff-card-desc">For advanced learners and subject experts</div>
               </div>
             </div>
-            <input type="hidden" id="build-diff" value="Intermediate">
+            <input type="hidden" id="build-diff" value="Beginner">
 
             <!-- Dynamic Section for Media / Questions upload -->
             <div id="studio-media-upload-area" style="margin-top:16px; border-top:1px solid var(--border-color); padding-top:16px;">
@@ -280,25 +280,6 @@
               <input type="file" id="img-upload" accept="image/*" onchange="handleImageUpload(event)" style="color:#fff; margin-bottom:10px;" />
               <div id="builder-canvas-wrap" style="display:none; position:relative; width:100%; margin-top:10px; border:1px dashed var(--text-muted); border-radius:8px; overflow:hidden;">
                 <img id="builder-img" alt="Preview" style="width:100%; display:block;" />
-              </div>
-            </div>
-
-            <div class="btn-row" style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:20px;">
-              <div>
-                <label class="studio-label">Estimated Questions</label>
-                <div class="callsign-input-wrap">
-                  <i class="far fa-file-alt" style="left:14px;"></i>
-                  <input type="number" id="build-qcount" class="studio-input" value="14" style="padding-left:42px; margin-bottom:2px;" oninput="updateLivePreview()" />
-                </div>
-                <span style="font-size:11px; color:var(--text-muted);">You will set exact questions in the next step.</span>
-              </div>
-              <div>
-                <label class="studio-label">Estimated Duration</label>
-                <div class="callsign-input-wrap">
-                  <i class="far fa-clock" style="left:14px;"></i>
-                  <input type="number" id="build-time" class="studio-input" value="60" style="padding-left:42px; margin-bottom:2px;" oninput="updateLivePreview()" />
-                </div>
-                <span style="font-size:11px; color:var(--text-muted);">Time per image/question.</span>
               </div>
             </div>
           </div>
@@ -313,16 +294,16 @@
 
             <div class="student-card-preview">
               <div class="scp-top">
-                <h4 class="scp-title" id="prev-card-title">Spot the Radios</h4>
-                <div class="scp-badge" id="prev-card-diff">INTERMEDIATE</div>
+                <h4 class="scp-title" id="prev-card-title">Untitled Quiz</h4>
+                <div class="scp-badge" id="prev-card-diff">BEGINNER</div>
               </div>
-              <div class="scp-desc" id="prev-card-desc">Identify common RF devices from imagery.</div>
-              <img id="prev-card-img" src="radios.jpg" class="scp-img" alt="Preview">
+              <div class="scp-desc" id="prev-card-desc">Short description will appear here...</div>
+              <img id="prev-card-img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" class="scp-img" alt="Preview">
               
               <div class="scp-meta">
                 <div class="scp-meta-item">
                   <i class="far fa-question-circle"></i>
-                  <span class="scp-meta-val" id="prev-card-qcount">14</span>
+                  <span class="scp-meta-val" id="prev-card-qcount">0</span>
                   <span class="scp-meta-lbl">Questions</span>
                 </div>
                 <div class="scp-meta-item">
@@ -332,14 +313,14 @@
                 </div>
                 <div class="scp-meta-item">
                   <i class="fas fa-chart-line"></i>
-                  <span class="scp-meta-val" id="prev-card-diff-lbl">Intermediate</span>
+                  <span class="scp-meta-val" id="prev-card-diff-lbl">Beginner</span>
                   <span class="scp-meta-lbl">Difficulty</span>
                 </div>
               </div>
 
               <div class="scp-obj-box">
                 <div class="scp-obj-title"><i class="fas fa-bullseye"></i> Learning Objective</div>
-                <span id="prev-card-obj">By completing this quiz, students will be able to identify common RF devices and associated emitters from imagery.</span>
+                <span id="prev-card-obj">Learning objective will appear here...</span>
               </div>
 
               <button class="scp-btn"><i class="fas fa-play" style="margin-right:6px;"></i> Start Quiz (Preview)</button>
@@ -389,7 +370,7 @@
           <div class="btn-row" style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
             <div>
               <label class="studio-label">Time Limit per Round (Seconds):</label>
-              <input type="number" id="set-time" class="studio-input" value="60" min="15" max="600" />
+              <input type="number" id="set-time" class="studio-input" value="60" min="15" max="600" oninput="updateLivePreview()" />
             </div>
             <div>
               <label class="studio-label">Questions Per Student Round (0 = All):</label>
@@ -412,9 +393,9 @@
           </div>
           <p class="form-section-desc">Verify your configuration before making the quiz live to the classroom.</p>
           <div style="background:#0a101a; padding:18px; border-radius:8px; border:1px solid var(--border-color);">
-            <h4 id="rev-title" style="margin:0 0 8px 0; color:#fff;">Spot the Radios</h4>
-            <p id="rev-desc" style="color:var(--text-muted); font-size:13px; margin:0 0 12px 0;">Identify common RF devices from imagery.</p>
-            <div style="font-size:13px; color:#38bdf8;" id="rev-stats">Type: Spot • Time: 60s • Difficulty: Intermediate</div>
+            <h4 id="rev-title" style="margin:0 0 8px 0; color:#fff;">Untitled Quiz</h4>
+            <p id="rev-desc" style="color:var(--text-muted); font-size:13px; margin:0 0 12px 0;"></p>
+            <div style="font-size:13px; color:#38bdf8;" id="rev-stats"></div>
           </div>
         </div>
 

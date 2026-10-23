@@ -17,14 +17,13 @@ const modeIcons = { mcq:'📝', binary:'⚡', sequence:'🔢', triage:'🗂️',
 let availableQuizzes = {};
 let activeQuiz = null, activeScoreListener = null;
 let playerName = "", timeLeft = 60, timerInterval = null, cpTileInterval = null;
-let scoreCount = 0, misses = 0, totalPossible = 10, sessionDetails = [];
+let scoreCount = 0, misses = 0, totalPossible = 0, sessionDetails = [];
 let currentSessionId = Date.now() + "_" + Math.random().toString(36).substring(2, 7);
 
 let activeItems = [], currentIndex = 0, seqProgress = 0;
 let parsedDocItems = [], builderTargets = [], uploadedBase64Image = "";
 let currentStudioStepNum = 1;
 
-// Load Quizzes from Firebase on startup
 quizzesRef.on('value', (snap) => {
   availableQuizzes = {};
   const data = snap.val();
@@ -309,13 +308,26 @@ function openLeaderboardOnly() {
   document.getElementById("end-summary").textContent = "Live Classroom Leaderboard";
 }
 
-// Studio & Wizard Step Management Logic
+// Studio & Wizard Step Management Logic (Blank Form Reset)
 function openStudio() {
   const studentView = document.getElementById("student-view");
   const studioView = document.getElementById("studio-view");
   if (studentView) studentView.style.display = "none";
   if (studioView) studioView.style.display = "flex";
+
+  // Reset form fields to completely blank state
+  document.getElementById("build-title").value = "";
+  document.getElementById("build-desc").value = "";
+  document.getElementById("build-obj").value = "";
+  document.getElementById("build-type").value = "spot";
+  document.getElementById("img-upload").value = "";
+  document.getElementById("builder-canvas-wrap").style.display = "none";
+  uploadedBase64Image = "";
+  builderTargets = [];
+  parsedDocItems = [];
+
   switchStudioStep(1);
+  updateLivePreview();
 }
 
 function closeStudio() {
@@ -368,14 +380,14 @@ function switchStudioStep(stepNum) {
       if (uploadedBase64Image) {
         mapImgEl.src = uploadedBase64Image;
       } else {
-        mapImgEl.src = "radios.jpg";
+        mapImgEl.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
       }
       renderStep2Markers();
     }
   } else if (stepNum === 4) {
     document.getElementById("rev-title").textContent = document.getElementById("build-title").value || "Untitled Quiz";
     document.getElementById("rev-desc").textContent = document.getElementById("build-desc").value || "";
-    document.getElementById("rev-stats").textContent = `Type: ${document.getElementById("build-type").value.toUpperCase()} • Time: ${document.getElementById("build-time").value}s • Difficulty: ${document.getElementById("build-diff").value}`;
+    document.getElementById("rev-stats").textContent = `Type: ${document.getElementById("build-type").value.toUpperCase()} • Time: ${document.getElementById("set-time") ? document.getElementById("set-time").value : 60}s • Difficulty: ${document.getElementById("build-diff").value}`;
   }
 }
 
@@ -395,12 +407,12 @@ function setDifficulty(level, el) {
 }
 
 function updateLivePreview() {
-  const title = document.getElementById("build-title").value || "Custom Quiz";
-  const desc = document.getElementById("build-desc").value || "Enter a short overview of your quiz module.";
-  const qcount = document.getElementById("build-qcount").value || "10";
-  const time = document.getElementById("build-time").value || "60";
-  const diff = document.getElementById("build-diff").value || "Intermediate";
-  const obj = document.getElementById("build-obj").value || "By completing this quiz, students will master the core learning outcomes.";
+  const title = document.getElementById("build-title").value || "Untitled Quiz";
+  const desc = document.getElementById("build-desc").value || "Short description will appear here...";
+  const qcount = builderTargets.length > 0 ? builderTargets.length : (parsedDocItems.length > 0 ? parsedDocItems.length : 0);
+  const time = document.getElementById("set-time") ? document.getElementById("set-time").value : 60;
+  const diff = document.getElementById("build-diff").value || "Beginner";
+  const obj = document.getElementById("build-obj").value || "Learning objective will appear here...";
 
   document.getElementById("prev-card-title").textContent = title;
   document.getElementById("prev-card-desc").textContent = desc;
@@ -409,6 +421,10 @@ function updateLivePreview() {
   document.getElementById("prev-card-time").textContent = time;
   document.getElementById("prev-card-diff-lbl").textContent = diff;
   document.getElementById("prev-card-obj").textContent = obj;
+
+  document.getElementById("title-char-count").textContent = `${title.length}/80`;
+  document.getElementById("desc-char-count").textContent = `${desc.length}/200`;
+  document.getElementById("obj-char-count").textContent = `${obj.length}/300`;
 }
 
 function handleImageUpload(e) {
@@ -470,6 +486,7 @@ function parseCurrentDocText() {
   if (cur && cur.options.length >= 2) parsedDocItems.push(cur);
   document.getElementById("doc-count").textContent = parsedDocItems.length;
   document.getElementById("doc-preview-list").innerHTML = parsedDocItems.map((it, i) => `<div>${i+1}. ${escapeHtml(it.q)}</div>`).join("") || "No valid questions parsed.";
+  updateLivePreview();
 }
 
 function onStep2MapClick(e) {
@@ -486,6 +503,7 @@ function onStep2MapClick(e) {
   
   renderStep2Markers();
   document.getElementById("step2-spot-preview-list").innerHTML = builderTargets.map(t => `<div>#${t.id}: ${escapeHtml(t.name)} (${t.x}%, ${t.y}%)</div>`).join("");
+  updateLivePreview();
 }
 
 function renderStep2Markers() {
@@ -511,12 +529,12 @@ function publishQuiz() {
 
   const payload = {
     title, type,
-    timeLimit: parseInt(document.getElementById("build-time").value) || 60,
+    timeLimit: parseInt(document.getElementById("set-time") ? document.getElementById("set-time").value : 60) || 60,
     description: document.getElementById("build-desc").value.trim() || "Training assessment module.",
     qtype: type === 'mcq' ? 'Multiple Choice' : type === 'spot' ? 'Identification (Images)' : 'Interactive Assessment',
     difficulty: document.getElementById("build-diff").value,
     objective: document.getElementById("build-obj").value.trim() || "Reinforce classroom learning objectives.",
-    image: uploadedBase64Image || "radios.jpg",
+    image: uploadedBase64Image || "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
     targets: builderTargets.length > 0 ? builderTargets : [{ id: 1, name: "Target 1", x: 50, y: 50, r: 6 }],
     items: parsedDocItems,
     randomize: document.getElementById("set-random") ? document.getElementById("set-random").checked : true,
