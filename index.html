@@ -180,7 +180,7 @@
         </div>
       </aside>
 
-      <!-- Main Studio Workspace (Scrollable Internally) -->
+      <!-- Main Studio Workspace -->
       <main class="studio-main">
         <div class="studio-topbar">
           <div>
@@ -357,7 +357,6 @@
             </div>
             
             <label class="studio-label" style="margin-top:16px;">Mapped Targets (<span id="step2-spot-count">0</span>):</label>
-            <!-- Auto-expanding container without inner scrollbar -->
             <div id="step2-spot-preview-list" style="background:#0a101a; padding:10px; border-radius:8px; border:1px solid var(--border-color); font-size:13px;">No target points mapped yet. Click on the image above.</div>
           </div>
         </div>
@@ -425,8 +424,8 @@
   </div>
 
 
-  <!-- ================= QUIZ DELETE MANAGER MODAL ================= -->
-  <div id="delete-manager-modal" class="overlay" style="z-index: 60;">
+  <!-- ================= QUIZ DELETE MANAGER MODAL (Properly Hidden by Default) ================= -->
+  <div id="delete-manager-modal" class="overlay" style="z-index: 60; display: none;">
     <div class="card" style="max-width: 560px; margin: 40px auto;">
       <div style="display:flex; justify-content:space-between; align-items:center;">
         <h3 style="margin:0;">🗂️ Manage Database Quizzes</h3>
