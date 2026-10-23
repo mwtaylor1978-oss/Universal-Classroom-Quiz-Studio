@@ -350,14 +350,14 @@
           <!-- Image Mapping Container -->
           <div id="step2-img-box" style="display:none;">
             <label class="studio-label">Interactive Image Mapping Workspace:</label>
-            <p style="font-size:12px; color:var(--text-muted);">Click directly on the challenge image below to drop target zones. Click any target in the list below to adjust its zone size.</p>
+            <p id="mapping-instruction" style="font-size:12px; color:var(--text-muted);">Click directly on the challenge image below to drop target zones.</p>
             
             <div id="step2-canvas-wrap" style="position:relative; display:inline-block; width:100%; border:1px dashed var(--text-muted); border-radius:8px; overflow:hidden; background:#000;">
               <img id="step2-map-img" alt="Mapping Workspace" onclick="onStep2MapClick(event)" style="width:100%; display:block; cursor:crosshair;" />
             </div>
             
-            <label class="studio-label" style="margin-top:16px;">Mapped Targets (<span id="step2-spot-count">0</span>) - Click item to adjust size:</label>
-            <div id="step2-spot-preview-list" style="max-height:180px; overflow-y:auto; background:#0a101a; padding:10px; border-radius:8px; border:1px solid var(--border-color); font-size:13px;">No target points mapped yet. Click on the image above.</div>
+            <label class="studio-label" style="margin-top:16px;">Mapped Targets (<span id="step2-spot-count">0</span>) - Click item to adjust size or reposition:</label>
+            <div id="step2-spot-preview-list" style="background:#0a101a; padding:10px; border-radius:8px; border:1px solid var(--border-color); font-size:13px;">No target points mapped yet. Click on the image above.</div>
           </div>
         </div>
 

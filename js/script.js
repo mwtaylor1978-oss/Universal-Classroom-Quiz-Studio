@@ -23,6 +23,7 @@ let currentSessionId = Date.now() + "_" + Math.random().toString(36).substring(2
 let activeItems = [], currentIndex = 0, seqProgress = 0;
 let parsedDocItems = [], builderTargets = [], uploadedBase64Image = "";
 let currentStudioStepNum = 1;
+let repositionTargetId = null; // Tracks target waiting for repositioning click
 
 quizzesRef.on('value', (snap) => {
   availableQuizzes = {};
@@ -315,7 +316,6 @@ function openStudio() {
   if (studentView) studentView.style.display = "none";
   if (studioView) studioView.style.display = "flex";
 
-  // Reset all form inputs to blank state
   document.getElementById("build-title").value = "";
   document.getElementById("build-desc").value = "";
   document.getElementById("build-obj").value = "";
@@ -325,6 +325,7 @@ function openStudio() {
   uploadedBase64Image = "";
   builderTargets = [];
   parsedDocItems = [];
+  repositionTargetId = null;
 
   switchStudioStep(1);
   updateLivePreview();
@@ -383,6 +384,7 @@ function switchStudioStep(stepNum) {
         mapImgEl.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
       }
       renderStep2Markers();
+      renderStep2TargetList();
     }
   } else if (stepNum === 4) {
     document.getElementById("rev-title").textContent = document.getElementById("build-title").value || "Untitled Quiz";
@@ -489,18 +491,41 @@ function parseCurrentDocText() {
   updateLivePreview();
 }
 
+function startRepositionTarget(id) {
+  repositionTargetId = id;
+  const inst = document.getElementById("mapping-instruction");
+  if (inst) {
+    inst.innerHTML = `<span style="color: var(--accent-yellow); font-weight: 700;">Repositioning Target #${id}—click new location on the image above.</span>`;
+  }
+}
+
 function onStep2MapClick(e) {
   const rect = e.target.getBoundingClientRect();
   const x = parseFloat((((e.clientX - rect.left) / rect.width) * 100).toFixed(1));
   const y = parseFloat((((e.clientY - rect.top) / rect.height) * 100).toFixed(1));
   
-  const newId = builderTargets.length + 1;
-  const defaultName = `Target ${newId}`;
-  const defaultRadius = 6;
+  if (repositionTargetId !== null) {
+    // Update existing target position
+    const target = builderTargets.find(t => t.id === repositionTargetId);
+    if (target) {
+      target.x = x;
+      target.y = y;
+    }
+    repositionTargetId = null;
+    const inst = document.getElementById("mapping-instruction");
+    if (inst) {
+      inst.textContent = "Click directly on the challenge image below to drop target zones.";
+    }
+  } else {
+    // Add new target
+    const newId = builderTargets.length + 1;
+    const defaultName = `Target ${newId}`;
+    const defaultRadius = 6;
 
-  builderTargets.push({ id: newId, name: defaultName, x, y, r: defaultRadius });
+    builderTargets.push({ id: newId, name: defaultName, x, y, r: defaultRadius });
+  }
+
   document.getElementById("step2-spot-count").textContent = builderTargets.length;
-  
   renderStep2Markers();
   renderStep2TargetList();
   updateLivePreview();
@@ -541,10 +566,13 @@ function renderStep2TargetList() {
   }
 
   listEl.innerHTML = builderTargets.map(t => `
-    <div style="display: flex; flex-direction: column; gap: 4px; padding: 8px 0; border-bottom: 1px solid #1e293b;">
+    <div style="display: flex; flex-direction: column; gap: 6px; padding: 10px; margin-bottom: 8px; background: #070c14; border-radius: 6px; border: 1px solid var(--border-color);">
       <div style="display: flex; justify-content: space-between; align-items: center;">
         <span style="font-weight: 600; color: #fff;">#${t.id}: ${escapeHtml(t.name)} (${t.x}%, ${t.y}%)</span>
-        <span style="font-size: 11px; color: var(--accent-blue);">Radius: <span id="r-lbl-${t.id}">${t.r || 6}</span>%</span>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <button class="btn" style="padding: 4px 10px; font-size: 11px; background: #1e293b; color: var(--accent-yellow); border: 1px solid var(--border-color); border-radius: 4px;" onclick="startRepositionTarget(${t.id})">📍 Reposition</button>
+          <span style="font-size: 11px; color: var(--accent-blue);">Radius: <span id="r-lbl-${t.id}">${t.r || 6}</span>%</span>
+        </div>
       </div>
       <input type="range" min="3" max="18" value="${t.r || 6}" style="width: 100%; accent-color: var(--accent-blue);" oninput="document.getElementById('r-lbl-${t.id}').textContent = this.value; updateTargetRadius(${t.id}, this.value)" />
     </div>
