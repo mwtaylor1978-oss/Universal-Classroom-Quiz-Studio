@@ -350,19 +350,14 @@
           <!-- Image Mapping Container -->
           <div id="step2-img-box" style="display:none;">
             <label class="studio-label">Interactive Image Mapping Workspace:</label>
-            <p style="font-size:12px; color:var(--text-muted);">Adjust the zone size slider below, then click directly on the challenge image to drop target zones.</p>
+            <p style="font-size:12px; color:var(--text-muted);">Click directly on the challenge image below to drop target zones. Click any target in the list below to adjust its zone size.</p>
             
-            <!-- Adjustable Zone Size Slider Control -->
-            <div style="display: flex; align-items: center; gap: 16px; background: #0a101a; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 12px;">
-              <label style="font-size: 13px; font-weight: 600; color: #fff; margin:0;">Zone Size (Radius): <span id="radius-val-display" style="color: var(--accent-blue);">6%</span></label>
-              <input type="range" id="target-radius-slider" min="3" max="15" value="6" style="flex: 1; accent-color: var(--accent-blue);" oninput="updateBuilderRadius(this.value)" />
-            </div>
-
             <div id="step2-canvas-wrap" style="position:relative; display:inline-block; width:100%; border:1px dashed var(--text-muted); border-radius:8px; overflow:hidden; background:#000;">
               <img id="step2-map-img" alt="Mapping Workspace" onclick="onStep2MapClick(event)" style="width:100%; display:block; cursor:crosshair;" />
             </div>
-            <label class="studio-label" style="margin-top:16px;">Mapped Targets (<span id="step2-spot-count">0</span>):</label>
-            <div id="step2-spot-preview-list" style="max-height:150px; overflow-y:auto; background:#0a101a; padding:10px; border-radius:8px; border:1px solid var(--border-color); font-size:13px;">No target points mapped yet. Click on the image above.</div>
+            
+            <label class="studio-label" style="margin-top:16px;">Mapped Targets (<span id="step2-spot-count">0</span>) - Click item to adjust size:</label>
+            <div id="step2-spot-preview-list" style="max-height:180px; overflow-y:auto; background:#0a101a; padding:10px; border-radius:8px; border:1px solid var(--border-color); font-size:13px;">No target points mapped yet. Click on the image above.</div>
           </div>
         </div>
 

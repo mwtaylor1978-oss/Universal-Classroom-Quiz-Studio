@@ -23,7 +23,6 @@ let currentSessionId = Date.now() + "_" + Math.random().toString(36).substring(2
 let activeItems = [], currentIndex = 0, seqProgress = 0;
 let parsedDocItems = [], builderTargets = [], uploadedBase64Image = "";
 let currentStudioStepNum = 1;
-let currentBuilderRadius = 6;
 
 quizzesRef.on('value', (snap) => {
   availableQuizzes = {};
@@ -490,12 +489,6 @@ function parseCurrentDocText() {
   updateLivePreview();
 }
 
-function updateBuilderRadius(val) {
-  currentBuilderRadius = parseInt(val);
-  const display = document.getElementById("radius-val-display");
-  if (display) display.textContent = val + "%";
-}
-
 function onStep2MapClick(e) {
   const rect = e.target.getBoundingClientRect();
   const x = parseFloat((((e.clientX - rect.left) / rect.width) * 100).toFixed(1));
@@ -503,13 +496,22 @@ function onStep2MapClick(e) {
   
   const newId = builderTargets.length + 1;
   const defaultName = `Target ${newId}`;
+  const defaultRadius = 6;
 
-  builderTargets.push({ id: newId, name: defaultName, x, y, r: currentBuilderRadius });
+  builderTargets.push({ id: newId, name: defaultName, x, y, r: defaultRadius });
   document.getElementById("step2-spot-count").textContent = builderTargets.length;
   
   renderStep2Markers();
-  document.getElementById("step2-spot-preview-list").innerHTML = builderTargets.map(t => `<div>#${t.id}: ${escapeHtml(t.name)} (${t.x}%, ${t.y}%) [Radius: ${t.r}%]</div>`).join("");
+  renderStep2TargetList();
   updateLivePreview();
+}
+
+function updateTargetRadius(targetId, newRadius) {
+  const target = builderTargets.find(t => t.id === parseInt(targetId));
+  if (target) {
+    target.r = parseInt(newRadius);
+    renderStep2Markers();
+  }
 }
 
 function renderStep2Markers() {
@@ -527,6 +529,26 @@ function renderStep2Markers() {
     m.style.aspectRatio = "1/1";
     wrap.appendChild(m);
   });
+}
+
+function renderStep2TargetList() {
+  const listEl = document.getElementById("step2-spot-preview-list");
+  if (!listEl) return;
+
+  if (builderTargets.length === 0) {
+    listEl.innerHTML = "No target points mapped yet. Click on the image above.";
+    return;
+  }
+
+  listEl.innerHTML = builderTargets.map(t => `
+    <div style="display: flex; flex-direction: column; gap: 4px; padding: 8px 0; border-bottom: 1px solid #1e293b;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-weight: 600; color: #fff;">#${t.id}: ${escapeHtml(t.name)} (${t.x}%, ${t.y}%)</span>
+        <span style="font-size: 11px; color: var(--accent-blue);">Radius: <span id="r-lbl-${t.id}">${t.r || 6}</span>%</span>
+      </div>
+      <input type="range" min="3" max="18" value="${t.r || 6}" style="width: 100%; accent-color: var(--accent-blue);" oninput="document.getElementById('r-lbl-${t.id}').textContent = this.value; updateTargetRadius(${t.id}, this.value)" />
+    </div>
+  `).join("");
 }
 
 function publishQuiz() {
@@ -549,7 +571,7 @@ function publishQuiz() {
     createdAt: Date.now()
   };
 
-    quizzesRef.push(payload).then((ref) => {
+  quizzesRef.push(payload).then((ref) => {
     alert("🎉 Quiz Published Live to Classroom Hub!");
     closeStudio();
     document.getElementById("quiz-selector").value = ref.key;
