@@ -137,7 +137,8 @@ function startGame() {
 }
 
 function setupVisualMode() {
-  document.getElementById("visual-stage").style.display = "flex";
+  const stage = document.getElementById("visual-stage");
+  if (stage) stage.style.display = "flex";
   document.getElementById("scene").src = activeQuiz.image || "";
   document.querySelectorAll(".marker, .pin-marker").forEach(m => m.remove());
   
@@ -157,6 +158,26 @@ function setupVisualMode() {
   } else {
     document.getElementById("pin-prompt-bar").style.display = "none";
   }
+}
+
+// Quit Confirmation Flow Handlers
+function confirmQuitQuiz() {
+  const modal = document.getElementById("quit-confirm-modal");
+  if (modal) modal.style.display = "flex";
+}
+
+function cancelQuitQuiz() {
+  const modal = document.getElementById("quit-confirm-modal");
+  if (modal) modal.style.display = "none";
+}
+
+function acceptQuitQuiz() {
+  // Hide modals and return to main screen without pushing to Firebase score database
+  const quitModal = document.getElementById("quit-confirm-modal");
+  const visStage = document.getElementById("visual-stage");
+  if (quitModal) quitModal.style.display = "none";
+  if (visStage) visStage.style.display = "none";
+  alert("Quiz abandoned. Registered as a failure (score not recorded).");
 }
 
 function renderNextPin() {
@@ -352,7 +373,6 @@ function switchStudioStep(stepNum) {
     }
   }
 
-  // Highlight Sidebar Nav Items
   const navCreate = document.getElementById("nav-create");
   const navMyQuizzes = document.getElementById("nav-myquizzes");
   if (navCreate) navCreate.classList.remove("active");

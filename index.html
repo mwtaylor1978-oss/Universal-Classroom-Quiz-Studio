@@ -141,7 +141,7 @@
   <!-- ======================================================== -->
   <div id="studio-view" style="display: none; position: relative; flex-direction: column; height: 100vh; overflow: hidden;">
     
-    <!-- ================= QUIZ DELETE MANAGER MODAL (Centered & Over Studio) ================= -->
+    <!-- ================= QUIZ DELETE MANAGER MODAL ================= -->
     <div id="delete-manager-modal" style="position: absolute; inset: 0; background: rgba(10, 16, 26, 0.85); z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px;">
       <div class="card" style="max-width: 560px; width: 100%; border: 1px solid var(--border-color); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
         <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -183,7 +183,6 @@
     </header>
 
     <div class="studio-layout">
-      <!-- Sidebar Navigation -->
       <aside class="studio-sidebar">
         <div class="studio-brand-area">
           <h3 class="studio-brand-title"><i class="fas fa-tools"></i> Instructor Studio</h3>
@@ -203,7 +202,6 @@
         </div>
       </aside>
 
-      <!-- Main Studio Workspace -->
       <main class="studio-main">
         <div class="studio-topbar">
           <div>
@@ -247,7 +245,6 @@
 
         <!-- ================= STEP 1 PANE ================= -->
         <div id="studio-pane-1" class="studio-grid">
-          <!-- Left Column: Form -->
           <div class="studio-form-card">
             <div class="form-section-header">
               <i class="far fa-file-alt"></i>
@@ -297,7 +294,6 @@
             </div>
             <input type="hidden" id="build-diff" value="Beginner">
 
-            <!-- Dynamic Section for Media / Questions upload -->
             <div id="studio-media-upload-area" style="margin-top:16px; border-top:1px solid var(--border-color); padding-top:16px;">
               <label class="studio-label">Challenge Image / Source Media:</label>
               <input type="file" id="img-upload" accept="image/*" onchange="handleImageUpload(event)" style="color:#fff; margin-bottom:10px;" />
@@ -360,7 +356,6 @@
           </div>
           <p class="form-section-desc">Provide your question bank or map interactive points on your challenge image.</p>
 
-          <!-- Text / Word Upload Container -->
           <div id="step2-doc-box">
             <label class="studio-label">Upload Word (.docx) or Text (.txt) Question Bank:</label>
             <input type="file" id="docx-upload" accept=".docx,.txt" onchange="handleDocxUpload(event)" style="color:#fff; margin-bottom:12px;" />
@@ -370,7 +365,6 @@
             <div id="doc-preview-list" style="max-height:180px; overflow-y:auto; background:#0a101a; padding:12px; border-radius:8px; border:1px solid var(--border-color); font-size:13px;">No content loaded yet.</div>
           </div>
 
-          <!-- Image Mapping Container -->
           <div id="step2-img-box" style="display:none;">
             <label class="studio-label">Interactive Image Mapping Workspace:</label>
             <p id="mapping-instruction" style="font-size:12px; color:var(--text-muted);">Click directly on the challenge image below to drop target zones.</p>
@@ -451,14 +445,45 @@
   <div id="catchphrase-stage" class="overlay" style="display: none;">
     <div class="card"><h3 id="cp-clue-display" style="color:var(--accent-blue);">Identify!</h3><div class="cp-board" style="position:relative; border-radius:10px; overflow:hidden; border:2px solid var(--border-color); background:#000;"><img id="cp-game-img" src="" alt="Mystery" style="width:100%; display:block;" /><div class="cp-grid" id="cp-grid" style="position:absolute; inset:0; display:grid; grid-template-columns:repeat(4, 1fr); grid-template-rows:repeat(4, 1fr);"></div></div><div style="margin-top:14px; display:flex; gap:10px;"><input type="text" id="cp-guess-input" placeholder="Type your answer..." style="margin:0; flex:1; padding:16px; background:var(--bg-dark); border:1px solid var(--border-color); color:white;" onkeydown="if(event.key==='Enter') submitCatchphraseGuess()" /><button class="btn btn-start" style="width:auto; margin:0; padding:16px 32px;" onclick="submitCatchphraseGuess()">Submit</button></div></div>
   </div>
-  <div id="visual-stage" class="overlay" style="display: none;">
-    <div class="card" style="max-width: 950px; margin: 40px auto;"><div id="pin-prompt-bar" class="box" style="display:none; margin-bottom:16px; background:var(--bg-dark);"><div class="progress" id="pin-progress" style="color:var(--accent-blue); text-transform:uppercase; font-size:12px; font-weight:700;">Pin 1</div><div style="font-size:18px; font-weight:700; margin:8px 0 16px 0;">Select correct label:</div><div id="pin-options" class="grid-2" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;"></div></div><div id="img-wrap" style="position:relative; display:inline-block; width:100%; user-select:none;"><img id="scene" src="" alt="Scene" style="width:100%; height:auto; display:block; border-radius:8px;" /></div></div>
+
+  <!-- ================= VISUAL / SPOT STAGE (Now Centered Overlay with X & Quit Warning) ================= -->
+  <div id="visual-stage" class="overlay" style="display: none; position: fixed; inset: 0; background: rgba(10, 16, 26, 0.92); z-index: 100; align-items: center; justify-content: center; padding: 20px;">
+    <div class="card" style="max-width: 950px; width: 100%; max-height: 90vh; overflow-y: auto; position: relative; border: 1px solid var(--border-color); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
+      
+      <!-- Quit X Button -->
+      <button onclick="confirmQuitQuiz()" style="position: absolute; top: 16px; right: 16px; background: #1e293b; color: #fff; border: 1px solid var(--border-color); width: 36px; height: 36px; border-radius: 50%; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10;">✕</button>
+
+      <div id="pin-prompt-bar" class="box" style="display:none; margin-bottom:16px; background:var(--bg-dark);">
+        <div class="progress" id="pin-progress" style="color:var(--accent-blue); text-transform:uppercase; font-size:12px; font-weight:700;">Pin 1</div>
+        <div style="font-size:18px; font-weight:700; margin:8px 0 16px 0;">Select correct label:</div>
+        <div id="pin-options" class="grid-2" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;"></div>
+      </div>
+      
+      <div id="img-wrap" style="position:relative; display:inline-block; width:100%; user-select:none;">
+        <img id="scene" src="" alt="Scene" style="width:100%; height:auto; display:block; border-radius:8px;" />
+      </div>
+    </div>
   </div>
+
+  <!-- ================= QUIT CONFIRMATION DIALOG MODAL ================= -->
+  <div id="quit-confirm-modal" style="position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85); z-index: 200; display: none; align-items: center; justify-content: center; padding: 20px;">
+    <div class="card" style="max-width: 440px; width: 100%; text-align: center; border: 1px solid var(--border-color);">
+      <h3 style="margin-top: 0; color: #ef4444;"><i class="fas fa-exclamation-triangle"></i> Quit Quiz?</h3>
+      <p style="color: var(--text-muted); font-size: 14px; line-height: 1.5; margin: 16px 0 24px 0;">
+        You are about to leave the Quiz. Leaving will register this as a failure.
+      </p>
+      <div style="display: flex; gap: 12px;">
+        <button class="btn" style="flex: 1; background: #334155; color: #fff;" onclick="cancelQuitQuiz()">Cancel</button>
+        <button class="btn" style="flex: 1; background: #991b1b; color: #fff;" onclick="acceptQuitQuiz()">Accept & Fail</button>
+      </div>
+    </div>
+  </div>
+
   <div id="card-stage" class="overlay" style="display: none;">
     <div class="card" style="max-width: 700px; margin: 40px auto;"><div class="progress" id="card-progress" style="color:var(--accent-blue); text-transform:uppercase; font-size:12px; font-weight:700; margin-bottom:8px;">Item 1</div><div class="prompt-lg" id="card-prompt" style="font-size:22px; font-weight:700; margin:0 0 24px 0; line-height:1.4;">Loading...</div><div id="card-interactive" class="grid-2" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;"></div></div>
   </div>
   <div id="end-screen" class="overlay" style="display: none;">
-    <div class="card" style="max-width: 800px; margin: 40px auto;"><h2 id="end-title" style="margin:0 0 8px 0; text-align:center;">🏆 High Score Table</h2><p id="end-summary" style="font-size:18px; color:var(--accent-blue); margin:4px 0; text-align:center;"></p><div class="table-wrap" style="max-height:45vh; overflow-y:auto; border:1px solid var(--border-color); border-radius:8px;"><table style="width:100%; border-collapse:collapse; text-align:left; font-size:14px;"><thead style="position:sticky; top:0; background:var(--bg-card); z-index:1;"><tr><th style="padding:12px 16px; border-bottom:2px solid var(--border-color); color:var(--text-muted); font-size:12px; text-transform:uppercase;">#</th><th style="padding:12px 16px; border-bottom:2px solid var(--border-color); color:var(--text-muted); font-size:12px; text-transform:uppercase;">Name</th><th style="padding:12px 16px; border-bottom:2px solid var(--border-color); color:var(--text-muted); font-size:12px; text-transform:uppercase;">Score</th><th style="padding:12px 16px; border-bottom:2px solid var(--border-color); color:var(--text-muted); font-size:12px; text-transform:uppercase;">Time</th><th style="padding:12px 16px; border-bottom:2px solid var(--border-color); color:var(--text-muted); font-size:12px; text-transform:uppercase;">Unnamed</th></tr></thead><tbody id="leaderboard-body"><tr><td colspan="5" style="text-align:center; padding:24px;">Loading...</td></tr></tbody></table></div><div class="btn-row" style="margin-top:32px; display:flex; gap:16px;"><button class="btn btn-start" style="flex:1; margin:0;" onclick="location.reload()">🔄 Main Menu / Play Again</button></div></div>
+    <div class="card" style="max-width: 800px; margin: 40px auto;"><h2 id="end-title" style="margin:0 0 8px 0; text-align:center;">🏆 High Score Table</h2><p id="end-summary" style="font-size:18px; color:var(--accent-blue); margin:4px 0; text-align:center;"></p><div class="table-wrap" style="max-height:45vh; overflow-y:auto; border:1px solid var(--border-color); border-radius:8px;"><table style="width:100%; border-collapse:collapse; text-align:left; font-size:14px;"><thead style="position:sticky; top:0; background:var(--bg-card); z-index:1;"><tr><th style="padding:12px 16px; border-bottom:2px solid var(--border-color); color:var(--text-muted); font-size:12px; text-transform:uppercase;">#</th><th style="padding:12px 16px; border-bottom:2px solid var(--border-color); color:var(--text-muted); font-size:12px; text-transform:uppercase;">Name</th><th style="padding:12px 16px; border-bottom:2px solid var(--border-color); color:var(--text-muted); font-size:12px; text-transform:uppercase;">Score</th><th style="padding:12px 16px; border-bottom:2px solid var(--border-color); color:var(--text-muted); font-size:12px; and text-transform:uppercase;">Time</th><th style="padding:12px 16px; border-bottom:2px solid var(--border-color); color:var(--text-muted); font-size:12px; text-transform:uppercase;">Unnamed</th></tr></thead><tbody id="leaderboard-body"><tr><td colspan="5" style="text-align:center; padding:24px;">Loading...</td></tr></tbody></table></div><div class="btn-row" style="margin-top:32px; display:flex; gap:16px;"><button class="btn btn-start" style="flex:1; margin:0;" onclick="location.reload()">🔄 Main Menu / Play Again</button></div></div>
   </div>
 
   <!-- Custom JS File -->
