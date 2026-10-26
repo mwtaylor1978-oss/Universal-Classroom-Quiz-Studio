@@ -12,7 +12,7 @@ const db = firebase.database();
 const quizzesRef = db.ref('quizzes');
 const allScoresRef = db.ref('quiz_scores');
 
-const modeIcons = { mcq:'📝', binary:'⚡', sequence:'🔢', triage:'🗂️', acronym:'🔤', spot:'🎯', pin:'📌', catchphrase:'🟩' };
+const modeIcons = { mcq:'📝', binary:'⚡', sequence:'🔢', triage:'🗂️', acronym:'🔤', spot:'🎯', pin:'📌', catchphrase:'🟩', mixed:'🧩' };
 
 let availableQuizzes = {};
 let activeQuiz = null, activeScoreListener = null;
@@ -507,6 +507,7 @@ function openStudio() {
   repositionTargetId = null;
 
   switchStudioStep(1);
+  switchBuilderType();
   updateLivePreview();
 }
 
@@ -515,6 +516,30 @@ function closeStudio() {
   const studioView = document.getElementById("studio-view");
   if (studioView) studioView.style.display = "none";
   if (studentView) studentView.style.display = "block";
+}
+
+function switchBuilderType() {
+  const type = document.getElementById("build-type").value;
+  const hintEl = document.getElementById("build-type-hint");
+  
+  const hints = {
+    spot: "Students identify and click on hidden targets within an image.",
+    pin: "Students match numbered schematic pins to correct labels.",
+    catchphrase: "Students guess the underlying concept as a 16-tile image slowly reveals.",
+    mixed: "Upload or paste a multi-format question bank containing a mix of choice options.",
+    mcq: "Students answer multiple-choice questions from an uploaded document or text bank.",
+    binary: "Students evaluate True/False statements from an uploaded text bank.",
+    sequence: "Students place steps into the correct chronological order.",
+    triage: "Students sort items into specific categorization buckets.",
+    acronym: "Students decode industry acronyms and specialized technical terms."
+  };
+  if (hintEl) hintEl.textContent = hints[type] || "Configure your training module settings.";
+
+  if (currentStudioStepNum === 2) {
+    const isImg = ["spot", "pin", "catchphrase"].includes(type);
+    document.getElementById("step2-doc-box").style.display = isImg ? "none" : "block";
+    document.getElementById("step2-img-box").style.display = isImg ? "block" : "none";
+  }
 }
 
 function switchStudioStep(stepNum) {
@@ -925,6 +950,7 @@ function loadQuizForEdit(quizId) {
   document.getElementById("step2-spot-count").textContent = builderTargets.length;
   document.getElementById("doc-count").textContent = parsedDocItems.length;
 
+  switchBuilderType();
   updateLivePreview();
 }
 
