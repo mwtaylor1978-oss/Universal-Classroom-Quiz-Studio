@@ -451,24 +451,25 @@
 
   <!-- ================= VISUAL / SPOT STAGE ================= -->
   <div id="visual-stage" class="overlay" style="display: none; position: fixed; inset: 0; background: rgba(10, 16, 26, 0.92); z-index: 100; align-items: center; justify-content: center; padding: 20px;">
-    <div class="card" style="max-width: 950px; width: 100%; max-height: 90vh; overflow-y: auto; position: relative; border: 1px solid var(--border-color); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
+    <div class="card" style="max-width: 950px; width: 100%; max-height: 90vh; overflow-y: auto; position: relative; border: 1px solid var(--border-color); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); display: flex; flex-direction: column; align-items: center;">
       
       <!-- Top Bar: Timer & Quit X Button -->
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+      <div style="width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
         <div id="quiz-timer-display" style="font-size: 16px; font-weight: 700; color: var(--accent-yellow); background: #1e293b; padding: 6px 14px; border-radius: 6px; border: 1px solid var(--border-color);">
           <i class="far fa-clock"></i> Time Left: <span id="time-remaining">60</span>s
         </div>
         <button onclick="confirmQuitQuiz()" style="background: #1e293b; color: #fff; border: 1px solid var(--border-color); width: 36px; height: 36px; border-radius: 50%; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;">✕</button>
       </div>
 
-      <div id="pin-prompt-bar" class="box" style="display:none; margin-bottom:16px; background:var(--bg-dark);">
+      <div id="pin-prompt-bar" class="box" style="width: 100%; display:none; margin-bottom:16px; background:var(--bg-dark);">
         <div class="progress" id="pin-progress" style="color:var(--accent-blue); text-transform:uppercase; font-size:12px; font-weight:700;">Pin 1</div>
         <div style="font-size:18px; font-weight:700; margin:8px 0 16px 0;">Select correct label:</div>
         <div id="pin-options" class="grid-2" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;"></div>
       </div>
       
-      <div id="img-wrap" style="position:relative; display:inline-block; width:100%; user-select:none;">
-        <img id="scene" src="" alt="Scene" style="width:100%; height:auto; display:block; border-radius:8px;" />
+      <!-- Responsive Image Container -->
+      <div id="img-wrap" style="position: relative; display: inline-block; max-width: 100%; max-height: 65vh; user-select: none; overflow: hidden; border-radius: 8px;">
+        <img id="scene" src="" alt="Scene" style="max-width: 100%; max-height: 65vh; width: auto; height: auto; display: block; object-fit: contain; border-radius: 8px;" />
       </div>
     </div>
   </div>
