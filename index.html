@@ -262,13 +262,14 @@
               <option value="spot">🎯 Spot the Object (Hidden Image Zones)</option>
               <option value="pin">📌 Schematic Pin-Matcher (Numbered Image Pins)</option>
               <option value="catchphrase">🟩 Catchphrase (16-Tile Image Reveal)</option>
+              <option value="mixed">🧩 Multi-Option Bank (Mixed MCQ, True/False & Text)</option>
               <option value="mcq">📝 Multiple Choice (.docx / Text)</option>
               <option value="binary">⚡ Binary Blitz - True/False (.docx / Text)</option>
               <option value="sequence">🔢 Sequence Builder - Order Steps (.docx / Text)</option>
               <option value="triage">🗂️ Rapid Triage - Bucket Sorter (.docx / Text)</option>
               <option value="acronym">🔤 Acronym & Term Decoder (.docx / Text)</option>
             </select>
-            <div style="font-size:12px; color:var(--text-muted); margin-bottom:18px;">Students identify and click on hidden targets within an image.</div>
+            <div style="font-size:12px; color:var(--text-muted); margin-bottom:18px;" id="build-type-hint">Students identify and click on hidden targets within an image.</div>
 
             <label class="studio-label">Short Description <span>*</span></label>
             <textarea id="build-desc" class="studio-textarea" rows="2" placeholder="Brief summary of the module..." oninput="updateLivePreview()"></textarea>
