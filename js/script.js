@@ -130,12 +130,15 @@ function startGame() {
   timeRemaining = parseInt(activeQuiz.timeLimit) || 60;
   
   const timerDisplay = document.getElementById("time-remaining");
+  const cardTimerDisplay = document.getElementById("card-time-remaining");
   if (timerDisplay) timerDisplay.textContent = timeRemaining;
+  if (cardTimerDisplay) cardTimerDisplay.textContent = timeRemaining;
 
   if (timerInterval) clearInterval(timerInterval);
   timerInterval = setInterval(() => {
     timeRemaining--;
     if (timerDisplay) timerDisplay.textContent = timeRemaining;
+    if (cardTimerDisplay) cardTimerDisplay.textContent = timeRemaining;
     if (timeRemaining <= 0) {
       clearInterval(timerInterval);
       triggerTimeUpModal();
@@ -178,12 +181,15 @@ function startPreviewQuiz() {
   timeRemaining = parseInt(activeQuiz.timeLimit) || 60;
   
   const timerDisplay = document.getElementById("time-remaining");
+  const cardTimerDisplay = document.getElementById("card-time-remaining");
   if (timerDisplay) timerDisplay.textContent = timeRemaining;
+  if (cardTimerDisplay) cardTimerDisplay.textContent = timeRemaining;
 
   if (timerInterval) clearInterval(timerInterval);
   timerInterval = setInterval(() => {
     timeRemaining--;
     if (timerDisplay) timerDisplay.textContent = timeRemaining;
+    if (cardTimerDisplay) cardTimerDisplay.textContent = timeRemaining;
     if (timeRemaining <= 0) {
       clearInterval(timerInterval);
       triggerTimeUpModal();
@@ -238,14 +244,23 @@ function acceptQuitQuiz() {
   if (timerInterval) clearInterval(timerInterval);
   const quitModal = document.getElementById("quit-confirm-modal");
   const visStage = document.getElementById("visual-stage");
+  const cardStage = document.getElementById("card-stage");
+  const catchStage = document.getElementById("catchphrase-stage");
   if (quitModal) quitModal.style.display = "none";
   if (visStage) visStage.style.display = "none";
+  if (cardStage) cardStage.style.display = "none";
+  if (catchStage) catchStage.style.display = "none";
 }
 
 // Time's Up Handlers
 function triggerTimeUpModal() {
   const visStage = document.getElementById("visual-stage");
+  const cardStage = document.getElementById("card-stage");
+  const catchStage = document.getElementById("catchphrase-stage");
   if (visStage) visStage.style.display = "none";
+  if (cardStage) cardStage.style.display = "none";
+  if (catchStage) catchStage.style.display = "none";
+
   const timeupModal = document.getElementById("timeup-modal");
   if (timeupModal) timeupModal.style.display = "flex";
 }
@@ -314,6 +329,9 @@ document.getElementById("scene").addEventListener("click", function(e) {
 
 function setupCardMode() {
   document.getElementById("card-stage").style.display = "flex";
+  const cardTimerDisplay = document.getElementById("card-time-remaining");
+  if (cardTimerDisplay) cardTimerDisplay.textContent = timeRemaining;
+
   let pool = JSON.parse(JSON.stringify(activeQuiz.items || []));
   if (activeQuiz.randomize) pool.sort(() => Math.random() - 0.5);
   if (activeQuiz.limit > 0 && activeQuiz.limit < pool.length) pool = pool.slice(0, activeQuiz.limit);
