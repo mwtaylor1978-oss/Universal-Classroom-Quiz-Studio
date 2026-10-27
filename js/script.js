@@ -89,10 +89,10 @@ function onQuizSelectChange() {
   document.getElementById("q-prev-img").src = activeQuiz.image || "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
   document.getElementById("q-prev-title").textContent = activeQuiz.title;
   document.getElementById("q-prev-desc").textContent = activeQuiz.description || "Classroom training module.";
-  document.getElementById("q-prev-qtype").textContent = activeQuiz.qtype || (activeQuiz.type ? activeQuiz.type.toUpperCase() : "Quiz");
+  document.getElementById("q-prev-qtype").textContent = activeQuiz.qtype || activeQuiz.type.toUpperCase();
   const count = activeQuiz.targets ? activeQuiz.targets.length : (activeQuiz.items ? (activeQuiz.limit > 0 ? Math.min(activeQuiz.limit, activeQuiz.items.length) : activeQuiz.items.length) : 10);
   document.getElementById("q-prev-qcount").textContent = count;
-  document.getElementById("q-prev-time").textContent = `${activeQuiz.timeLimit || 60} Seconds`;
+  document.getElementById("q-prev-time").textContent = `${activeQuiz.timeLimit} Seconds`;
   document.getElementById("q-prev-diff").innerHTML = `<span class="tag-diff">${activeQuiz.difficulty || 'Intermediate'}</span>`;
   document.getElementById("q-prev-obj").textContent = activeQuiz.objective || "Test your knowledge and reinforce learning.";
 
@@ -130,15 +130,12 @@ function startGame() {
   timeRemaining = parseInt(activeQuiz.timeLimit) || 60;
   
   const timerDisplay = document.getElementById("time-remaining");
-  const cardTimerDisplay = document.getElementById("card-time-remaining");
   if (timerDisplay) timerDisplay.textContent = timeRemaining;
-  if (cardTimerDisplay) cardTimerDisplay.textContent = timeRemaining;
 
   if (timerInterval) clearInterval(timerInterval);
   timerInterval = setInterval(() => {
     timeRemaining--;
     if (timerDisplay) timerDisplay.textContent = timeRemaining;
-    if (cardTimerDisplay) cardTimerDisplay.textContent = timeRemaining;
     if (timeRemaining <= 0) {
       clearInterval(timerInterval);
       triggerTimeUpModal();
@@ -181,15 +178,12 @@ function startPreviewQuiz() {
   timeRemaining = parseInt(activeQuiz.timeLimit) || 60;
   
   const timerDisplay = document.getElementById("time-remaining");
-  const cardTimerDisplay = document.getElementById("card-time-remaining");
   if (timerDisplay) timerDisplay.textContent = timeRemaining;
-  if (cardTimerDisplay) cardTimerDisplay.textContent = timeRemaining;
 
   if (timerInterval) clearInterval(timerInterval);
   timerInterval = setInterval(() => {
     timeRemaining--;
     if (timerDisplay) timerDisplay.textContent = timeRemaining;
-    if (cardTimerDisplay) cardTimerDisplay.textContent = timeRemaining;
     if (timeRemaining <= 0) {
       clearInterval(timerInterval);
       triggerTimeUpModal();
@@ -229,6 +223,7 @@ function setupVisualMode() {
   }
 }
 
+// Quit Confirmation Flow Handlers
 function confirmQuitQuiz() {
   const modal = document.getElementById("quit-confirm-modal");
   if (modal) modal.style.display = "flex";
@@ -243,22 +238,14 @@ function acceptQuitQuiz() {
   if (timerInterval) clearInterval(timerInterval);
   const quitModal = document.getElementById("quit-confirm-modal");
   const visStage = document.getElementById("visual-stage");
-  const cardStage = document.getElementById("card-stage");
-  const catchStage = document.getElementById("catchphrase-stage");
   if (quitModal) quitModal.style.display = "none";
   if (visStage) visStage.style.display = "none";
-  if (cardStage) cardStage.style.display = "none";
-  if (catchStage) catchStage.style.display = "none";
 }
 
+// Time's Up Handlers
 function triggerTimeUpModal() {
   const visStage = document.getElementById("visual-stage");
-  const cardStage = document.getElementById("card-stage");
-  const catchStage = document.getElementById("catchphrase-stage");
   if (visStage) visStage.style.display = "none";
-  if (cardStage) cardStage.style.display = "none";
-  if (catchStage) catchStage.style.display = "none";
-
   const timeupModal = document.getElementById("timeup-modal");
   if (timeupModal) timeupModal.style.display = "flex";
 }
@@ -327,9 +314,6 @@ document.getElementById("scene").addEventListener("click", function(e) {
 
 function setupCardMode() {
   document.getElementById("card-stage").style.display = "flex";
-  const cardTimerDisplay = document.getElementById("card-time-remaining");
-  if (cardTimerDisplay) cardTimerDisplay.textContent = timeRemaining;
-
   let pool = JSON.parse(JSON.stringify(activeQuiz.items || []));
   if (activeQuiz.randomize) pool.sort(() => Math.random() - 0.5);
   if (activeQuiz.limit > 0 && activeQuiz.limit < pool.length) pool = pool.slice(0, activeQuiz.limit);
@@ -491,6 +475,7 @@ function openLeaderboardOnly() {
   });
 }
 
+// Studio & Wizard Step Management Logic
 function openStudio() {
   const studentView = document.getElementById("student-view");
   const studioView = document.getElementById("studio-view");
