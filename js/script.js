@@ -98,18 +98,18 @@ function onQuizSelectChange() {
   document.getElementById("q-prev-desc").textContent = activeQuiz.description || "Classroom training module.";
   document.getElementById("q-prev-qtype").textContent = activeQuiz.qtype || activeQuiz.type.toUpperCase();
   
+  // Properly check items first for MCQ/mixed quizzes, fallback to targets
   let totalCount = 10;
-  if (activeQuiz.targets && activeQuiz.targets.length > 0) {
-    totalCount = activeQuiz.targets.length;
-  } else if (activeQuiz.items && activeQuiz.items.length > 0) {
+  if (activeQuiz.items && activeQuiz.items.length > 0) {
     totalCount = activeQuiz.items.length;
     if (activeQuiz.limit > 0 && activeQuiz.limit < totalCount) {
       totalCount = activeQuiz.limit;
     }
+  } else if (activeQuiz.targets && activeQuiz.targets.length > 0) {
+    totalCount = activeQuiz.targets.length;
   }
   document.getElementById("q-prev-qcount").textContent = totalCount;
 
-  // Display time limit in minutes
   const timeLimitMins = activeQuiz.timeLimit ? (activeQuiz.timeLimit / 60) : 1;
   document.getElementById("q-prev-time").textContent = `${timeLimitMins} Mins`;
   document.getElementById("q-prev-diff").innerHTML = `<span class="tag-diff">${activeQuiz.difficulty || 'Intermediate'}</span>`;
@@ -146,8 +146,6 @@ function startGame() {
 
   isPreviewMode = false;
   scoreCount = 0; misses = 0; currentIndex = 0; sessionDetails = [];
-  
-  // timeLimit stored in DB is in seconds; convert minutes input to seconds
   timeRemaining = parseInt(activeQuiz.timeLimit) || 60;
   
   const formattedTime = formatTime(timeRemaining);
@@ -162,7 +160,6 @@ function startGame() {
     const ft = formatTime(Math.max(0, timeRemaining));
     if (timerDisplay) timerDisplay.textContent = ft;
     if (cardTimerDisplay) cardTimerDisplay.textContent = ft;
-    
     if (timeRemaining <= 0) {
       clearInterval(timerInterval);
       triggerTimeUpModal();
@@ -218,7 +215,6 @@ function startPreviewQuiz() {
     const ft = formatTime(Math.max(0, timeRemaining));
     if (timerDisplay) timerDisplay.textContent = ft;
     if (cardTimerDisplay) cardTimerDisplay.textContent = ft;
-    
     if (timeRemaining <= 0) {
       clearInterval(timerInterval);
       triggerTimeUpModal();
@@ -944,7 +940,7 @@ function publishQuiz() {
 
   const payload = {
     title, type,
-    timeLimit: Math.round(timeMins * 60), // Convert minutes to seconds for storage
+    timeLimit: Math.round(timeMins * 60),
     description: document.getElementById("build-desc").value.trim() || "Training assessment module.",
     qtype: type === 'mcq' ? 'Multiple Choice' : type === 'spot' ? 'Identification (Images)' : 'Interactive Assessment',
     difficulty: document.getElementById("build-diff").value,
@@ -1055,7 +1051,6 @@ function loadQuizForEdit(quizId) {
   document.getElementById("build-obj").value = q.objective || "";
   document.getElementById("build-type").value = q.type || "spot";
   
-  // Convert stored seconds back to minutes for the studio input
   const timeLimitSecs = q.timeLimit || 60;
   document.getElementById("set-time").value = (timeLimitSecs / 60);
 
