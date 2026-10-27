@@ -499,8 +499,22 @@
     </div>
   </div>
 
-  <div id="card-stage" class="overlay" style="display: none;">
-    <div class="card" style="max-width: 700px; margin: 40px auto;"><div class="progress" id="card-progress" style="color:var(--accent-blue); text-transform:uppercase; font-size:12px; font-weight:700; margin-bottom:8px;">Item 1</div><div class="prompt-lg" id="card-prompt" style="font-size:22px; font-weight:700; margin:0 0 24px 0; line-height:1.4;">Loading...</div><div id="card-interactive" class="grid-2" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;"></div></div>
+  <!-- ================= CARD / MULTI-CHOICE STAGE ================= -->
+  <div id="card-stage" class="overlay" style="display: none; position: fixed; inset: 0; background: rgba(10, 16, 26, 0.92); z-index: 100; align-items: center; justify-content: center; padding: 20px;">
+    <div class="card" style="max-width: 700px; width: 100%; max-height: 90vh; overflow-y: auto; position: relative; border: 1px solid var(--border-color); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
+      
+      <!-- Top Bar: Timer & Quit X Button -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <div id="card-timer-display" style="font-size: 16px; font-weight: 700; color: var(--accent-yellow); background: #1e293b; padding: 6px 14px; border-radius: 6px; border: 1px solid var(--border-color);">
+          <i class="far fa-clock"></i> Time Left: <span id="card-time-remaining">60</span>s
+        </div>
+        <button onclick="confirmQuitQuiz()" style="background: #1e293b; color: #fff; border: 1px solid var(--border-color); width: 36px; height: 36px; border-radius: 50%; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;">✕</button>
+      </div>
+
+      <div class="progress" id="card-progress" style="color:var(--accent-blue); text-transform:uppercase; font-size:12px; font-weight:700; margin-bottom:8px;">Item 1</div>
+      <div class="prompt-lg" id="card-prompt" style="font-size:22px; font-weight:700; margin:0 0 24px 0; line-height:1.4;">Loading...</div>
+      <div id="card-interactive" class="grid-2" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;"></div>
+    </div>
   </div>
 
   <!-- ================= END SCREEN / LEADERBOARD MODAL ================= -->
