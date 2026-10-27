@@ -27,6 +27,13 @@ let repositionTargetId = null;
 let editingQuizId = null;
 let isPreviewMode = false;
 
+// Helper to format seconds into MM:SS
+function formatTime(seconds) {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+}
+
 quizzesRef.on('value', (snap) => {
   availableQuizzes = {};
   const data = snap.val();
@@ -91,7 +98,6 @@ function onQuizSelectChange() {
   document.getElementById("q-prev-desc").textContent = activeQuiz.description || "Classroom training module.";
   document.getElementById("q-prev-qtype").textContent = activeQuiz.qtype || activeQuiz.type.toUpperCase();
   
-  // Correctly compute question count for document/text items vs image targets
   let totalCount = 10;
   if (activeQuiz.targets && activeQuiz.targets.length > 0) {
     totalCount = activeQuiz.targets.length;
@@ -103,7 +109,9 @@ function onQuizSelectChange() {
   }
   document.getElementById("q-prev-qcount").textContent = totalCount;
 
-  document.getElementById("q-prev-time").textContent = `${activeQuiz.timeLimit} Seconds`;
+  // Display time limit in minutes
+  const timeLimitMins = activeQuiz.timeLimit ? (activeQuiz.timeLimit / 60) : 1;
+  document.getElementById("q-prev-time").textContent = `${timeLimitMins} Mins`;
   document.getElementById("q-prev-diff").innerHTML = `<span class="tag-diff">${activeQuiz.difficulty || 'Intermediate'}</span>`;
   document.getElementById("q-prev-obj").textContent = activeQuiz.objective || "Test your knowledge and reinforce learning.";
 
@@ -125,7 +133,7 @@ function onQuizSelectChange() {
         <div class="lb-rank lb-rank-${i+1}">${i+1}</div>
         <div class="lb-name">${escapeHtml(s.name)}</div>
         <div class="lb-score">${s.found}/${s.total || totalCount}</div>
-        <div class="lb-time">${s.time}s</div>
+        <div class="lb-time">${formatTime(s.time)}</div>
       </div>
     `).join("");
   });
@@ -138,18 +146,23 @@ function startGame() {
 
   isPreviewMode = false;
   scoreCount = 0; misses = 0; currentIndex = 0; sessionDetails = [];
+  
+  // timeLimit stored in DB is in seconds; convert minutes input to seconds
   timeRemaining = parseInt(activeQuiz.timeLimit) || 60;
   
+  const formattedTime = formatTime(timeRemaining);
   const timerDisplay = document.getElementById("time-remaining");
   const cardTimerDisplay = document.getElementById("card-time-remaining");
-  if (timerDisplay) timerDisplay.textContent = timeRemaining;
-  if (cardTimerDisplay) cardTimerDisplay.textContent = timeRemaining;
+  if (timerDisplay) timerDisplay.textContent = formattedTime;
+  if (cardTimerDisplay) cardTimerDisplay.textContent = formattedTime;
 
   if (timerInterval) clearInterval(timerInterval);
   timerInterval = setInterval(() => {
     timeRemaining--;
-    if (timerDisplay) timerDisplay.textContent = timeRemaining;
-    if (cardTimerDisplay) cardTimerDisplay.textContent = timeRemaining;
+    const ft = formatTime(Math.max(0, timeRemaining));
+    if (timerDisplay) timerDisplay.textContent = ft;
+    if (cardTimerDisplay) cardTimerDisplay.textContent = ft;
+    
     if (timeRemaining <= 0) {
       clearInterval(timerInterval);
       triggerTimeUpModal();
@@ -175,11 +188,13 @@ function startPreviewQuiz() {
   playerName = "Studio Previewer";
   
   const type = document.getElementById("build-type").value;
+  const timeInputMins = parseFloat(document.getElementById("set-time") ? document.getElementById("set-time").value : 1) || 1;
+  
   activeQuiz = {
     id: "preview_mode",
     title: title,
     type: type,
-    timeLimit: parseInt(document.getElementById("set-time") ? document.getElementById("set-time").value : 60) || 60,
+    timeLimit: Math.round(timeInputMins * 60),
     description: document.getElementById("build-desc").value.trim() || "Preview description",
     image: uploadedBase64Image || "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
     targets: builderTargets.length > 0 ? builderTargets : [{ id: 1, name: "Target 1", x: 50, y: 50, r: 6 }],
@@ -189,18 +204,21 @@ function startPreviewQuiz() {
   };
 
   scoreCount = 0; misses = 0; currentIndex = 0; sessionDetails = [];
-  timeRemaining = parseInt(activeQuiz.timeLimit) || 60;
+  timeRemaining = activeQuiz.timeLimit;
   
+  const formattedTime = formatTime(timeRemaining);
   const timerDisplay = document.getElementById("time-remaining");
   const cardTimerDisplay = document.getElementById("card-time-remaining");
-  if (timerDisplay) timerDisplay.textContent = timeRemaining;
-  if (cardTimerDisplay) cardTimerDisplay.textContent = timeRemaining;
+  if (timerDisplay) timerDisplay.textContent = formattedTime;
+  if (cardTimerDisplay) cardTimerDisplay.textContent = formattedTime;
 
   if (timerInterval) clearInterval(timerInterval);
   timerInterval = setInterval(() => {
     timeRemaining--;
-    if (timerDisplay) timerDisplay.textContent = timeRemaining;
-    if (cardTimerDisplay) cardTimerDisplay.textContent = timeRemaining;
+    const ft = formatTime(Math.max(0, timeRemaining));
+    if (timerDisplay) timerDisplay.textContent = ft;
+    if (cardTimerDisplay) cardTimerDisplay.textContent = ft;
+    
     if (timeRemaining <= 0) {
       clearInterval(timerInterval);
       triggerTimeUpModal();
@@ -341,7 +359,7 @@ document.getElementById("scene").addEventListener("click", function(e) {
 function setupCardMode() {
   document.getElementById("card-stage").style.display = "flex";
   const cardTimerDisplay = document.getElementById("card-time-remaining");
-  if (cardTimerDisplay) cardTimerDisplay.textContent = timeRemaining;
+  if (cardTimerDisplay) cardTimerDisplay.textContent = formatTime(timeRemaining);
 
   let pool = JSON.parse(JSON.stringify(activeQuiz.items || []));
   if (activeQuiz.randomize) pool.sort(() => Math.random() - 0.5);
@@ -475,7 +493,8 @@ function setupCatchphraseMode() {
     grid.appendChild(t);
   }
   indices.sort(() => Math.random() - 0.5);
-  const stepMs = Math.max(1200, Math.floor(((activeQuiz.timeLimit || 60) * 1000) / 16));
+  const totalTimeAllowed = activeQuiz ? (parseInt(activeQuiz.timeLimit) || 60) : 60;
+  const stepMs = Math.max(1200, Math.floor((totalTimeAllowed * 1000) / 16));
   cpTileInterval = setInterval(() => {
     if (indices.length === 0) return clearInterval(cpTileInterval);
     const nextIdx = indices.pop();
@@ -516,7 +535,7 @@ function endGame(completedAll) {
         <tr style="background: rgba(0, 150, 255, 0.15); font-weight: 700;">
           <td style="padding: 12px 16px; border-bottom: 1px solid var(--border-color);">1</td>
           <td style="padding: 12px 16px; border-bottom: 1px solid var(--border-color);">${escapeHtml(playerName)} (Preview)</td>
-          <td style="padding: 12px 16px; border-bottom: 1px solid var(--border-color);">${scoreCount}/${totalPossible} (${timeTaken}s)</td>
+          <td style="padding: 12px 16px; border-bottom: 1px solid var(--border-color);">${scoreCount}/${totalPossible} (${formatTime(timeTaken)})</td>
         </tr>
       `;
     }
@@ -551,7 +570,7 @@ function endGame(completedAll) {
           <tr style="${rowStyle}">
             <td style="padding: 12px 16px; border-bottom: 1px solid var(--border-color);">${i + 1}</td>
             <td style="padding: 12px 16px; border-bottom: 1px solid var(--border-color);">${escapeHtml(s.name)} ${isCurrent ? '(You)' : ''}</td>
-            <td style="padding: 12px 16px; border-bottom: 1px solid var(--border-color);">${s.found}/${s.total || totalPossible} (${s.time}s)</td>
+            <td style="padding: 12px 16px; border-bottom: 1px solid var(--border-color);">${s.found}/${s.total || totalPossible} (${formatTime(s.time)})</td>
           </tr>
         `;
       }).join("");
@@ -580,7 +599,7 @@ function openLeaderboardOnly() {
       <tr>
         <td style="padding: 12px 16px; border-bottom: 1px solid var(--border-color);">${i + 1}</td>
         <td style="padding: 12px 16px; border-bottom: 1px solid var(--border-color);">${escapeHtml(s.name)}</td>
-        <td style="padding: 12px 16px; border-bottom: 1px solid var(--border-color);">${s.found}/${s.total || 10} (${s.time}s)</td>
+        <td style="padding: 12px 16px; border-bottom: 1px solid var(--border-color);">${s.found}/${s.total || 10} (${formatTime(s.time)})</td>
       </tr>
     `).join("");
   });
@@ -597,7 +616,7 @@ function openStudio() {
   document.getElementById("build-desc").value = "";
   document.getElementById("build-obj").value = "";
   document.getElementById("build-type").value = "spot";
-  document.getElementById("set-time").value = "60";
+  document.getElementById("set-time").value = "1";
   document.getElementById("set-limit").value = "0";
   document.getElementById("set-random").checked = true;
   document.getElementById("img-upload").value = "";
@@ -709,9 +728,10 @@ function switchStudioStep(stepNum) {
       renderStep2TargetList();
     }
   } else if (stepNum === 4) {
+    const timeMins = document.getElementById("set-time") ? document.getElementById("set-time").value : 1;
     document.getElementById("rev-title").textContent = document.getElementById("build-title").value || "Untitled Quiz";
     document.getElementById("rev-desc").textContent = document.getElementById("build-desc").value || "";
-    document.getElementById("rev-stats").textContent = `Type: ${document.getElementById("build-type").value.toUpperCase()} • Time: ${document.getElementById("set-time") ? document.getElementById("set-time").value : 60}s • Difficulty: ${document.getElementById("build-diff").value}`;
+    document.getElementById("rev-stats").textContent = `Type: ${document.getElementById("build-type").value.toUpperCase()} • Time: ${timeMins} Mins • Difficulty: ${document.getElementById("build-diff").value}`;
   }
 }
 
@@ -734,7 +754,7 @@ function updateLivePreview() {
   const title = document.getElementById("build-title").value || "Untitled Quiz";
   const desc = document.getElementById("build-desc").value || "Short description will appear here...";
   const qcount = builderTargets.length > 0 ? builderTargets.length : (parsedDocItems.length > 0 ? parsedDocItems.length : 0);
-  const time = document.getElementById("set-time") ? document.getElementById("set-time").value : 60;
+  const timeMins = document.getElementById("set-time") ? document.getElementById("set-time").value : 1;
   const diff = document.getElementById("build-diff").value || "Beginner";
   const obj = document.getElementById("build-obj").value || "Learning objective will appear here...";
 
@@ -742,7 +762,7 @@ function updateLivePreview() {
   document.getElementById("prev-card-desc").textContent = desc;
   document.getElementById("prev-card-diff").textContent = diff.toUpperCase();
   document.getElementById("prev-card-qcount").textContent = qcount;
-  document.getElementById("prev-card-time").textContent = time;
+  document.getElementById("prev-card-time").textContent = `${timeMins} Mins`;
   document.getElementById("prev-card-diff-lbl").textContent = diff;
   document.getElementById("prev-card-obj").textContent = obj;
 
@@ -920,9 +940,11 @@ function publishQuiz() {
   title = title.replace(/\s*\(DRAFT\)$/i, "").trim();
   document.getElementById("build-title").value = title;
 
+  const timeMins = parseFloat(document.getElementById("set-time") ? document.getElementById("set-time").value : 1) || 1;
+
   const payload = {
     title, type,
-    timeLimit: parseInt(document.getElementById("set-time") ? document.getElementById("set-time").value : 60) || 60,
+    timeLimit: Math.round(timeMins * 60), // Convert minutes to seconds for storage
     description: document.getElementById("build-desc").value.trim() || "Training assessment module.",
     qtype: type === 'mcq' ? 'Multiple Choice' : type === 'spot' ? 'Identification (Images)' : 'Interactive Assessment',
     difficulty: document.getElementById("build-diff").value,
@@ -960,9 +982,11 @@ function saveAsDraft() {
   }
   document.getElementById("build-title").value = title;
 
+  const timeMins = parseFloat(document.getElementById("set-time") ? document.getElementById("set-time").value : 1) || 1;
+
   const payload = {
     title, type,
-    timeLimit: parseInt(document.getElementById("set-time") ? document.getElementById("set-time").value : 60) || 60,
+    timeLimit: Math.round(timeMins * 60),
     description: document.getElementById("build-desc").value.trim() || "Training assessment module.",
     qtype: type === 'mcq' ? 'Multiple Choice' : type === 'spot' ? 'Identification (Images)' : 'Interactive Assessment',
     difficulty: document.getElementById("build-diff").value,
@@ -1030,7 +1054,11 @@ function loadQuizForEdit(quizId) {
   document.getElementById("build-desc").value = q.description || "";
   document.getElementById("build-obj").value = q.objective || "";
   document.getElementById("build-type").value = q.type || "spot";
-  document.getElementById("set-time").value = q.timeLimit || 60;
+  
+  // Convert stored seconds back to minutes for the studio input
+  const timeLimitSecs = q.timeLimit || 60;
+  document.getElementById("set-time").value = (timeLimitSecs / 60);
+
   document.getElementById("set-limit").value = q.limit || 0;
   if (document.getElementById("set-random")) {
     document.getElementById("set-random").checked = q.randomize !== false;
