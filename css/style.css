@@ -415,7 +415,73 @@ input#player-name::placeholder { color: #4a5568; }
 .overlay { position: fixed; inset: 0; background: rgba(10, 16, 26, 0.95); display: none; flex-direction: column; z-index: 50; overflow-y: auto; }
 .overlay .card { max-width: 800px; width: 90%; margin: 40px auto; }
 
-@media (max-width: 900px) {
-  .studio-grid { grid-template-columns: 1fr !important; }
-  .live-preview-pane { position: static; }
+/* ========================================================
+   RESPONSIVE MOBILE ADAPTATIONS (< 768px)
+   ======================================================== */
+@media (max-width: 768px) {
+  /* Header adjustments */
+  .main-header {
+    padding: 12px 16px;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    text-align: center;
+  }
+  .header-left {
+    justify-content: center;
+  }
+  .header-center-quote, .header-right {
+    display: none;
+  }
+
+  /* Main container stack */
+  .app-container {
+    grid-template-columns: 1fr;
+    padding: 16px;
+    gap: 20px;
+  }
+
+  .card {
+    padding: 20px;
+  }
+
+  /* Timeline & form columns */
+  .timeline {
+    margin: 20px 0;
+  }
+  .action-row {
+    grid-template-columns: 1fr;
+  }
+
+  /* Instructor Studio Layout */
+  .studio-layout {
+    grid-template-columns: 1fr;
+    height: auto;
+    overflow-y: auto;
+  }
+  .studio-sidebar {
+    display: none;
+  }
+  .studio-main {
+    padding: 16px;
+  }
+  .studio-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Quiz Overlays & Modals scaling */
+  .overlay .card {
+    width: 95% !important;
+    margin: 20px auto !important;
+    padding: 16px !important;
+    max-height: 95vh !important;
+  }
+
+  /* Multiple choice option buttons stack cleanly */
+  #card-interactive {
+    gap: 8px !important;
+  }
+  .btn-mcq-option {
+    padding: 12px 14px !important;
+    font-size: 14px !important;
+  }
 }
