@@ -349,12 +349,102 @@ function renderCardItem() {
   inter.innerHTML = "";
 
   const rightText = item.options[item.correct];
-  const opts = activeQuiz.randomize ? [...item.options].sort(() => Math.random() - 0.5) : [...item.options];
-  opts.forEach((opt, i) => {
+  
+  // Create shuffled option mapping while keeping track of correctness
+  const optsWithOriginalIndex = item.options.map((opt, origIdx) => ({ opt, origIdx }));
+  if (activeQuiz.randomize) {
+    optsWithOriginalIndex.sort(() => Math.random() - 0.5);
+  }
+
+  optsWithOriginalIndex.forEach(({ opt, origIdx }, displayIdx) => {
     const b = document.createElement("button");
-    b.className = "btn"; b.style.background = "#1e293b"; b.style.color = "#fff"; b.style.border = "1px solid var(--border-color)"; b.style.textAlign = "left";
-    b.textContent = `${["A","B","C","D","E"][i]}. ${opt}`;
-    b.onclick = () => recordCardStep(opt === rightText, `Q${currentIndex+1}: ${item.q.substring(0,25)}...`);
+    b.className = "btn-mcq-option";
+    b.style.cssText = `
+      width: 100%;
+      background: #1e293b;
+      color: #f8fafc;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 16px 20px;
+      text-align: left;
+      font-size: 15px;
+      font-weight: 500;
+      line-height: 1.4;
+      cursor: pointer;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      transition: all 0.15s ease;
+    `;
+    
+    const letterBadge = document.createElement("span");
+    letterBadge.textContent = ["A", "B", "C", "D", "E"][displayIdx] + ".";
+    letterBadge.style.cssText = `
+      background: #0a101a;
+      color: #38bdf8;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 13px;
+      flex-shrink: 0;
+      border: 1px solid var(--border-color);
+    `;
+
+    const textSpan = document.createElement("span");
+    textSpan.textContent = opt;
+    textSpan.style.flex = "1";
+
+    b.appendChild(letterBadge);
+    b.appendChild(textSpan);
+
+    b.onmouseover = () => { if (!b.disabled) b.style.borderColor = "var(--accent-blue)"; };
+    b.onmouseout = () => { if (!b.disabled) b.style.borderColor = "var(--border-color)"; };
+
+    b.onclick = () => {
+      // Disable all option buttons once an answer is chosen
+      const allButtons = inter.querySelectorAll("button");
+      allButtons.forEach(btn => btn.disabled = true);
+
+      const isRight = (origIdx === item.correct);
+      
+      if (isRight) {
+        b.style.background = "rgba(22, 163, 74, 0.25)";
+        b.style.borderColor = "#22c55e";
+        letterBadge.style.background = "#22c55e";
+        letterBadge.style.color = "#fff";
+      } else {
+        b.style.background = "rgba(153, 27, 27, 0.25)";
+        b.style.borderColor = "#ef4444";
+        letterBadge.style.background = "#ef4444";
+        letterBadge.style.color = "#fff";
+
+        // Highlight the correct answer button in green so student learns
+        allButtons.forEach(btn => {
+          if (btn.getAttribute("data-is-correct") === "true") {
+            btn.style.background = "rgba(22, 163, 74, 0.25)";
+            btn.style.borderColor = "#22c55e";
+            const badge = btn.querySelector("span");
+            if (badge) {
+              badge.style.background = "#22c55e";
+              badge.style.color = "#fff";
+            }
+          }
+        });
+      }
+
+      recordCardStep(isRight, `Q${currentIndex+1}: ${item.q.substring(0,25)}...`);
+      
+      // Short delay so student sees the highlight feedback before next question
+      setTimeout(() => {
+        currentIndex++;
+        renderCardItem();
+      }, 900);
+    };
+
+    if (origIdx === item.correct) {
+      b.setAttribute("data-is-correct", "true");
+    }
+
     inter.appendChild(b);
   });
 }
@@ -362,8 +452,6 @@ function renderCardItem() {
 function recordCardStep(isRight, labelText) {
   if (isRight) scoreCount++; else misses++;
   sessionDetails.push({ label: labelText, ok: isRight });
-  currentIndex++;
-  renderCardItem();
 }
 
 function setupCatchphraseMode() {
