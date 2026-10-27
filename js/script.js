@@ -89,10 +89,10 @@ function onQuizSelectChange() {
   document.getElementById("q-prev-img").src = activeQuiz.image || "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
   document.getElementById("q-prev-title").textContent = activeQuiz.title;
   document.getElementById("q-prev-desc").textContent = activeQuiz.description || "Classroom training module.";
-  document.getElementById("q-prev-qtype").textContent = activeQuiz.qtype || activeQuiz.type.toUpperCase();
+  document.getElementById("q-prev-qtype").textContent = activeQuiz.qtype || (activeQuiz.type ? activeQuiz.type.toUpperCase() : "Quiz");
   const count = activeQuiz.targets ? activeQuiz.targets.length : (activeQuiz.items ? (activeQuiz.limit > 0 ? Math.min(activeQuiz.limit, activeQuiz.items.length) : activeQuiz.items.length) : 10);
   document.getElementById("q-prev-qcount").textContent = count;
-  document.getElementById("q-prev-time").textContent = `${activeQuiz.timeLimit} Seconds`;
+  document.getElementById("q-prev-time").textContent = `${activeQuiz.timeLimit || 60} Seconds`;
   document.getElementById("q-prev-diff").innerHTML = `<span class="tag-diff">${activeQuiz.difficulty || 'Intermediate'}</span>`;
   document.getElementById("q-prev-obj").textContent = activeQuiz.objective || "Test your knowledge and reinforce learning.";
 
@@ -229,7 +229,6 @@ function setupVisualMode() {
   }
 }
 
-// Quit Confirmation Flow Handlers
 function confirmQuitQuiz() {
   const modal = document.getElementById("quit-confirm-modal");
   if (modal) modal.style.display = "flex";
@@ -252,7 +251,6 @@ function acceptQuitQuiz() {
   if (catchStage) catchStage.style.display = "none";
 }
 
-// Time's Up Handlers
 function triggerTimeUpModal() {
   const visStage = document.getElementById("visual-stage");
   const cardStage = document.getElementById("card-stage");
@@ -493,7 +491,6 @@ function openLeaderboardOnly() {
   });
 }
 
-// Studio & Wizard Step Management Logic
 function openStudio() {
   const studentView = document.getElementById("student-view");
   const studioView = document.getElementById("studio-view");
