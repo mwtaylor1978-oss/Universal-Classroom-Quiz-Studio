@@ -90,8 +90,19 @@ function onQuizSelectChange() {
   document.getElementById("q-prev-title").textContent = activeQuiz.title;
   document.getElementById("q-prev-desc").textContent = activeQuiz.description || "Classroom training module.";
   document.getElementById("q-prev-qtype").textContent = activeQuiz.qtype || activeQuiz.type.toUpperCase();
-  const count = activeQuiz.targets ? activeQuiz.targets.length : (activeQuiz.items ? (activeQuiz.limit > 0 ? Math.min(activeQuiz.limit, activeQuiz.items.length) : activeQuiz.items.length) : 10);
-  document.getElementById("q-prev-qcount").textContent = count;
+  
+  // Correctly compute question count for document/text items vs image targets
+  let totalCount = 10;
+  if (activeQuiz.targets && activeQuiz.targets.length > 0) {
+    totalCount = activeQuiz.targets.length;
+  } else if (activeQuiz.items && activeQuiz.items.length > 0) {
+    totalCount = activeQuiz.items.length;
+    if (activeQuiz.limit > 0 && activeQuiz.limit < totalCount) {
+      totalCount = activeQuiz.limit;
+    }
+  }
+  document.getElementById("q-prev-qcount").textContent = totalCount;
+
   document.getElementById("q-prev-time").textContent = `${activeQuiz.timeLimit} Seconds`;
   document.getElementById("q-prev-diff").innerHTML = `<span class="tag-diff">${activeQuiz.difficulty || 'Intermediate'}</span>`;
   document.getElementById("q-prev-obj").textContent = activeQuiz.objective || "Test your knowledge and reinforce learning.";
@@ -113,7 +124,7 @@ function onQuizSelectChange() {
       <div class="lb-item">
         <div class="lb-rank lb-rank-${i+1}">${i+1}</div>
         <div class="lb-name">${escapeHtml(s.name)}</div>
-        <div class="lb-score">${s.found}/${s.total || count}</div>
+        <div class="lb-score">${s.found}/${s.total || totalCount}</div>
         <div class="lb-time">${s.time}s</div>
       </div>
     `).join("");
@@ -348,9 +359,6 @@ function renderCardItem() {
   const inter = document.getElementById("card-interactive");
   inter.innerHTML = "";
 
-  const rightText = item.options[item.correct];
-  
-  // Create shuffled option mapping while keeping track of correctness
   const optsWithOriginalIndex = item.options.map((opt, origIdx) => ({ opt, origIdx }));
   if (activeQuiz.randomize) {
     optsWithOriginalIndex.sort(() => Math.random() - 0.5);
@@ -401,7 +409,6 @@ function renderCardItem() {
     b.onmouseout = () => { if (!b.disabled) b.style.borderColor = "var(--border-color)"; };
 
     b.onclick = () => {
-      // Disable all option buttons once an answer is chosen
       const allButtons = inter.querySelectorAll("button");
       allButtons.forEach(btn => btn.disabled = true);
 
@@ -418,7 +425,6 @@ function renderCardItem() {
         letterBadge.style.background = "#ef4444";
         letterBadge.style.color = "#fff";
 
-        // Highlight the correct answer button in green so student learns
         allButtons.forEach(btn => {
           if (btn.getAttribute("data-is-correct") === "true") {
             btn.style.background = "rgba(22, 163, 74, 0.25)";
@@ -434,7 +440,6 @@ function renderCardItem() {
 
       recordCardStep(isRight, `Q${currentIndex+1}: ${item.q.substring(0,25)}...`);
       
-      // Short delay so student sees the highlight feedback before next question
       setTimeout(() => {
         currentIndex++;
         renderCardItem();
