@@ -189,7 +189,7 @@
           <div class="studio-brand-sub">Create • Manage • Analyse</div>
         </div>
         <nav class="studio-nav">
-          <button class="studio-nav-item" id="nav-create" onclick="switchStudioStep(1)"><i class="fas fa-plus-circle"></i> Create New Quiz</button>
+          <button class="studio-nav-item" id="nav-create" onclick="startNewQuiz()"><i class="fas fa-plus-circle"></i> Create New Quiz</button>
           <button class="studio-nav-item" id="nav-myquizzes" onclick="openDeleteManager()"><i class="fas fa-folder-open"></i> My Quizzes</button>
           <button class="studio-nav-item" onclick="alert('Analytics module coming soon!')"><i class="fas fa-chart-bar"></i> Analytics</button>
           <button class="studio-nav-item" onclick="alert('Question Bank module coming soon!')"><i class="fas fa-database"></i> Question Bank</button>
@@ -260,14 +260,7 @@
             <label class="studio-label">Quiz Type <span>*</span></label>
             <select id="build-type" class="studio-select" onchange="switchBuilderType(); updateLivePreview();">
               <option value="spot">🎯 Spot the Object (Hidden Image Zones)</option>
-              <option value="pin">📌 Schematic Pin-Matcher (Numbered Image Pins)</option>
-              <option value="catchphrase">🟩 Catchphrase (16-Tile Image Reveal)</option>
-              <option value="mixed">🧩 Multi-Option Bank (Mixed MCQ, True/False & Text)</option>
-              <option value="mcq">📝 Multiple Choice (.docx / Text)</option>
-              <option value="binary">⚡ Binary Blitz - True/False (.docx / Text)</option>
-              <option value="sequence">🔢 Sequence Builder - Order Steps (.docx / Text)</option>
-              <option value="triage">🗂️ Rapid Triage - Bucket Sorter (.docx / Text)</option>
-              <option value="acronym">🔤 Acronym & Term Decoder (.docx / Text)</option>
+              <option value="mcq">📝 Multiple Choice (.docx / Text / In-App)</option>
             </select>
             <div style="font-size:12px; color:var(--text-muted); margin-bottom:18px;" id="build-type-hint">Students identify and click on hidden targets within an image.</div>
 
@@ -354,30 +347,80 @@
         <!-- ================= STEP 2 PANE (Add Content) ================= -->
         <div id="studio-pane-2" style="display: none;" class="studio-form-card">
           <div class="form-section-header">
-            <i class="fas fa-upload"></i>
-            <h3 class="form-section-title">Add Content (Upload & Map)</h3>
+            <i class="fas fa-edit"></i>
+            <h3 class="form-section-title">Interactive Question Builder</h3>
           </div>
-          <p class="form-section-desc">Provide your question bank or map interactive points on your challenge image.</p>
+          <p class="form-section-desc">Create your questions directly inside the app, or import them from a file if preferred.</p>
 
-          <div id="step2-doc-box">
-            <label class="studio-label">Upload Word (.docx) or Text (.txt) Question Bank:</label>
-            <input type="file" id="docx-upload" accept=".docx,.txt" onchange="handleDocxUpload(event)" style="color:#fff; margin-bottom:12px;" />
-            <label class="studio-label">Raw Content Editor:</label>
-            <textarea id="raw-text-input" rows="8" class="studio-textarea" oninput="parseCurrentDocText()" placeholder="Type or paste questions here..."></textarea>
-            <label class="studio-label" style="margin-top:16px;">Parsed Items Preview (<span id="doc-count">0</span> valid):</label>
-            <div id="doc-preview-list" style="max-height:180px; overflow-y:auto; background:#0a101a; padding:12px; border-radius:8px; border:1px solid var(--border-color); font-size:13px;">No content loaded yet.</div>
-          </div>
+          <!-- In-App Question Builder Form Card -->
+          <div style="background: #0a101a; padding: 20px; border-radius: 10px; border: 1px solid var(--border-color); margin-bottom: 20px;">
+            <h4 style="margin: 0 0 16px 0; color: #fff; display: flex; align-items: center; gap: 8px;">
+              <i class="fas fa-plus-circle" style="color: var(--accent-blue);"></i> Add New Question
+            </h4>
 
-          <div id="step2-img-box" style="display:none;">
-            <label class="studio-label">Interactive Image Mapping Workspace:</label>
-            <p id="mapping-instruction" style="font-size:12px; color:var(--text-muted);">Click directly on the challenge image below to drop target zones.</p>
-            
-            <div id="step2-canvas-wrap" style="position:relative; display:inline-block; width:100%; border:1px dashed var(--text-muted); border-radius:8px; overflow:hidden; background:#000;">
-              <img id="step2-map-img" alt="Mapping Workspace" onclick="onStep2MapClick(event)" style="width:100%; display:block; cursor:crosshair;" />
+            <label class="studio-label">Question Text <span>*</span></label>
+            <textarea id="builder-q-text" class="studio-textarea" rows="2" placeholder="e.g. What is the primary function of an Electronic Support measure?"></textarea>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+              <div>
+                <label class="studio-label">Option A <span>*</span></label>
+                <input type="text" id="builder-opt-0" class="studio-input" placeholder="Answer option A..." />
+              </div>
+              <div>
+                <label class="studio-label">Option B <span>*</span></label>
+                <input type="text" id="builder-opt-1" class="studio-input" placeholder="Answer option B..." />
+              </div>
+              <div>
+                <label class="studio-label">Option C (Optional)</label>
+                <input type="text" id="builder-opt-2" class="studio-input" placeholder="Answer option C..." />
+              </div>
+              <div>
+                <label class="studio-label">Option D (Optional)</label>
+                <input type="text" id="builder-opt-3" class="studio-input" placeholder="Answer option D..." />
+              </div>
             </div>
-            
-            <label class="studio-label" style="margin-top:16px;">Mapped Targets (<span id="step2-spot-count">0</span>):</label>
-            <div id="step2-spot-preview-list" style="background:#0a101a; padding:10px; border-radius:8px; border:1px solid var(--border-color); font-size:13px;">No target points mapped yet. Click on the image above.</div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 12px;">
+              <div>
+                <label class="studio-label">Correct Answer <span>*</span></label>
+                <select id="builder-correct-idx" class="studio-select">
+                  <option value="0">Option A is Correct</option>
+                  <option value="1">Option B is Correct</option>
+                  <option value="2">Option C is Correct</option>
+                  <option value="3">Option D is Correct</option>
+                </select>
+              </div>
+              <div>
+                <label class="studio-label">Optional Media URL (GitHub Asset / Link):</label>
+                <input type="text" id="builder-media-input" class="studio-input" placeholder="e.g. assets/media/filename.mp4" style="margin: 0;" />
+                <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Paste your GitHub asset path or direct media link.</div>
+              </div>
+            </div>
+
+            <button class="btn btn-start" style="width: 100%; padding: 12px; margin-top: 8px;" onclick="addQuestionFromBuilder()">
+              <i class="fas fa-check"></i> Add Question to Bank
+            </button>
+          </div>
+
+          <!-- Question Bank Summary List -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <label class="studio-label" style="margin: 0;">Created Questions Bank (<span id="doc-count">0</span> items):</label>
+            <button class="btn" style="padding: 4px 10px; font-size: 11px; background: #1e293b; color: var(--accent-blue); border: 1px solid var(--border-color); border-radius: 4px;" onclick="exportQuestionBank()"><i class="fas fa-download"></i> Export Bank</button>
+          </div>
+          <div id="doc-preview-list" style="max-height: 220px; overflow-y: auto; background: #0a101a; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px;">
+            No questions created yet. Use the form above to add questions.
+          </div>
+
+          <!-- Optional Document / Text Import Toggle -->
+          <div style="margin-top: 24px; border-top: 1px solid var(--border-color); padding-top: 16px;">
+            <details style="color: var(--text-muted); font-size: 13px; cursor: pointer;">
+              <summary style="font-weight: 600; color: #fff; margin-bottom: 8px;">📁 Or Import from Word (.docx) / Text File</summary>
+              <input type="file" id="docx-upload" accept=".docx,.txt" onchange="handleDocxUpload(event)" style="color:#fff; margin: 8px 0;" />
+              <textarea id="raw-text-input" rows="4" class="studio-textarea" placeholder="Paste raw text format here if importing..."></textarea>
+              <button class="btn btn-start" style="width: 100%; padding: 10px; margin-top: 8px; font-size: 13px;" onclick="parseCurrentDocText()">
+                <i class="fas fa-plus"></i> Append Pasted Questions to Bank
+              </button>
+            </details>
           </div>
         </div>
 
@@ -445,10 +488,6 @@
 
 
   <!-- ================= GAME STAGES (Overlay Modals) ================= -->
-  <div id="catchphrase-stage" class="overlay" style="display: none;">
-    <div class="card"><h3 id="cp-clue-display" style="color:var(--accent-blue);">Identify!</h3><div class="cp-board" style="position:relative; border-radius:10px; overflow:hidden; border:2px solid var(--border-color); background:#000;"><img id="cp-game-img" src="" alt="Mystery" style="width:100%; display:block;" /><div class="cp-grid" id="cp-grid" style="position:absolute; inset:0; display:grid; grid-template-columns:repeat(4, 1fr); grid-template-rows:repeat(4, 1fr);"></div></div><div style="margin-top:14px; display:flex; gap:10px;"><input type="text" id="cp-guess-input" placeholder="Type your answer..." style="margin:0; flex:1; padding:16px; background:var(--bg-dark); border:1px solid var(--border-color); color:white;" onkeydown="if(event.key==='Enter') submitCatchphraseGuess()" /><button class="btn btn-start" style="width:auto; margin:0; padding:16px 32px;" onclick="submitCatchphraseGuess()">Submit</button></div></div>
-  </div>
-
   <!-- ================= VISUAL / SPOT STAGE ================= -->
   <div id="visual-stage" class="overlay" style="display: none; position: fixed; inset: 0; background: rgba(10, 16, 26, 0.92); z-index: 100; align-items: center; justify-content: center; padding: 20px;">
     <div class="card" style="max-width: 950px; width: 100%; max-height: 90vh; overflow-y: auto; position: relative; border: 1px solid var(--border-color); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); display: flex; flex-direction: column; align-items: center;">
@@ -459,12 +498,6 @@
           <i class="far fa-clock"></i> Time Left: <span id="time-remaining">01:00</span>
         </div>
         <button onclick="confirmQuitQuiz()" style="background: #1e293b; color: #fff; border: 1px solid var(--border-color); width: 36px; height: 36px; border-radius: 50%; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;">✕</button>
-      </div>
-
-      <div id="pin-prompt-bar" class="box" style="width: 100%; display:none; margin-bottom:16px; background:var(--bg-dark);">
-        <div class="progress" id="pin-progress" style="color:var(--accent-blue); text-transform:uppercase; font-size:12px; font-weight:700;">Pin 1</div>
-        <div style="font-size:18px; font-weight:700; margin:8px 0 16px 0;">Select correct label:</div>
-        <div id="pin-options" class="grid-2" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;"></div>
       </div>
       
       <!-- Responsive Image Container -->
